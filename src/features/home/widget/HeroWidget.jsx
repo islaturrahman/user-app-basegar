@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { View, Text, TouchableOpacity, Modal } from "react-native";
+import { View, Text, TouchableOpacity, Modal, Platform } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import SearchProducts from "../screen/SearchProducts";
@@ -18,7 +18,10 @@ const HeroWidget = ({ deliveryDate, setDeliveryDate }) => {
             const address = JSON.parse(rawAddress);
             if (address?.address) {
               // Ambil nama jalan - bagian pertama sebelum koma
-              const streetName = address.address.split(",")[0].trim();
+              let streetName = address.address.split(",")[0].trim();
+              if (streetName.length > 25) {
+                streetName = streetName.substring(0, 25) + "...";
+              }
               setDisplayAddress(streetName || address.address_type || "Lokasi Saya");
             }
           }
@@ -52,11 +55,11 @@ const HeroWidget = ({ deliveryDate, setDeliveryDate }) => {
   return (
     <>
       {/* Container Background (Sticky header, flat bottom) */}
-      <View className="relative overflow-hidden pt-12 pb-3 px-3 bg-[#0461b4] shadow-sm z-50">
+      <View className={`relative overflow-hidden ${Platform.OS === 'web' ? 'pt-4' : 'pt-12'} pb-3 px-3 bg-[#0461b4] shadow-sm z-50`}>
         
         {/* Top Location & Wishlist bar */}
         <View className="flex-row justify-between items-center mb-[2px] relative z-10">
-          <View className="flex-row items-center space-x-2">
+          <View className="flex-row items-center space-x-2 flex-1 pr-4">
             {/* Map Pin icon */}
             <View className="items-center justify-center w-7 h-7 rounded-full bg-black/10">
               <Text className="text-red-500 text-xs">📍</Text>
@@ -65,10 +68,10 @@ const HeroWidget = ({ deliveryDate, setDeliveryDate }) => {
             {/* Location Address Details */}
             <TouchableOpacity 
               onPress={handleAddressPress}
-              className="flex-col active:scale-95 transition-transform"
+              className="flex-col active:scale-95 transition-transform flex-1"
             >
               <View className="flex-row items-center space-x-1">
-                <Text className="text-[13px] font-semibold text-white tracking-wide" numberOfLines={1}>
+                <Text className="text-[13px] font-semibold text-white tracking-wide" numberOfLines={1} ellipsizeMode="tail">
                   Ke <Text className="underline">{displayAddress}</Text>
                 </Text>
               </View>
@@ -78,10 +81,7 @@ const HeroWidget = ({ deliveryDate, setDeliveryDate }) => {
             </TouchableOpacity>
           </View>
 
-          {/* Heart icon at the right */}
-          <TouchableOpacity className="items-center justify-center w-7 h-7 rounded-full bg-black/15 active:scale-95">
-             <Text className="text-red-500 text-xs">❤️</Text>
-          </TouchableOpacity>
+
         </View>
 
         {/* Search Bar section */}

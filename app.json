@@ -8,6 +8,19 @@
     "ios": {
       "supportsTablet": true
     },
-    "android": {}
+    "android": {
+      "softwareKeyboardLayoutMode": "resize",
+      "package": "com.app.basegar",
+      "versionCode": 1
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "6e7cbc69-770b-429f-9c02-5ac829f5d962"
+      }
+    },
+    "owner": "islaexpo"
   }
 }

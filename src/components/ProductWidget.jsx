@@ -128,11 +128,6 @@ const ProductWidget = ({ products, type = "grid" }) => {
                 {product.time_slot && product.time_slot.start_time && (
                   <View className="absolute top-0 left-0 bg-green-700/90 px-2 py-1 rounded-br-xl z-10 flex-col shadow-sm">
                     <Text className="text-[9px] font-black uppercase tracking-wider text-yellow-300">Fresh</Text>
-                    {isSlotExpired && (
-                      <Text className="text-[7.5px] font-medium text-white mt-0.5">
-                        Ready {product.time_slot.start_time.substring(0, 5)} Besok
-                      </Text>
-                    )}
                   </View>
                 )}
                 {parsedImage ? (
@@ -153,6 +148,11 @@ const ProductWidget = ({ products, type = "grid" }) => {
               <Text className="text-sm font-semibold text-gray-800 mb-1" numberOfLines={2}>
                 {product.name}
               </Text>
+              {isSlotExpired && (
+                <View className="bg-gray-200 self-start px-2 py-0.5 rounded-[5px] mb-1">
+                  <Text className="text-[9px] font-bold text-gray-700">Tersedia besok</Text>
+                </View>
+              )}
               
               <View className="flex-row flex-wrap">
                 {product.choice_options?.map((item, idx) => (
@@ -226,11 +226,6 @@ const ProductWidget = ({ products, type = "grid" }) => {
               {product.time_slot && product.time_slot.start_time && (
                 <View className="absolute top-0 left-0 bg-green-700/90 px-1.5 py-0.5 rounded-br-lg z-10 flex-col shadow-sm">
                   <Text className="text-[7px] font-black uppercase tracking-wider text-yellow-300">Fresh</Text>
-                  {isSlotExpired && (
-                    <Text className="text-[6px] font-medium text-white mt-0.5">
-                      Ready {product.time_slot.start_time.substring(0, 5)} Besok
-                    </Text>
-                  )}
                 </View>
               )}
               <Image

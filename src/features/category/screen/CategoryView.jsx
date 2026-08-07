@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import { View, Text, TouchableOpacity, ScrollView, Dimensions, Modal, Image as RNImage, FlatList, RefreshControl, Platform } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Image } from "expo-image";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import CartContext from "../../../context/CartContext";
@@ -185,24 +185,36 @@ export default function CategoryView() {
     : category_id;
 
   const { 
-    data: fetchedProducts = [], 
+    data: fetchedData, 
     isLoading: loadingProducts, 
     isFetching: isFetchingProducts,
+    isFetchingNextPage: isFetchingNextProducts,
+    hasNextPage: hasNextProducts,
+    fetchNextPage: fetchNextProducts,
     refetch: refetchProducts 
-  } = useQuery({
+  } = useInfiniteQuery({
     queryKey: ['products', targetFetchId, deliveryDate],
-    queryFn: async () => {
-      const endpoint = deliveryDate 
+    queryFn: async ({ pageParam = 1 }) => {
+      let endpoint = deliveryDate 
         ? `${category_products_all}/${targetFetchId}/all?delivery_date=${deliveryDate}`
         : `${category_products_all}/${targetFetchId}/all`;
+      const sep = endpoint.includes("?") ? "&" : "?";
+      endpoint += `${sep}page=${pageParam}&limit=10`;
+      
       const json = await get(endpoint);
       if (Array.isArray(json)) return json;
       if (json && Array.isArray(json.products)) return json.products;
       if (json && Array.isArray(json.data)) return json.data;
       return [];
     },
+    getNextPageParam: (lastPage, allPages) => {
+      return (lastPage && lastPage.length === 10) ? allPages.length + 1 : undefined;
+    },
+    initialPageParam: 1,
     enabled: !!targetFetchId
   });
+
+  const fetchedProducts = fetchedData ? fetchedData.pages.flat() : [];
 
   const displayCategories = allCategories.length > 0 ? allCategories.map(cat => ({
     ...cat,
@@ -311,7 +323,7 @@ export default function CategoryView() {
   return (
     <View className="flex-1 bg-white">
       {/* Top Header */}
-      <View className="bg-white border-b border-gray-100 px-3 py-2 flex-row items-center justify-between z-50 pt-12">
+      <View className={`bg-white border-b border-gray-100 px-3 py-2 flex-row items-center justify-between z-50 ${Platform.OS === 'web' ? 'pt-4' : 'pt-12'}`}>
         <TouchableOpacity 
           onPress={() => navigation.goBack()} 
           className="items-center justify-center w-8 h-8 rounded-full"
@@ -423,11 +435,17 @@ export default function CategoryView() {
             showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl
-                refreshing={isFetchingProducts && !loadingProducts}
+                refreshing={isFetchingProducts && !loadingProducts && !isFetchingNextProducts}
                 onRefresh={refetchProducts}
                 colors={["#16a34a"]}
               />
             }
+            onEndReached={() => {
+              if (hasNextProducts && !isFetchingNextProducts) {
+                fetchNextProducts();
+              }
+            }}
+            onEndReachedThreshold={0.5}
             ListHeaderComponent={
               <>
                 <CategoryBanner categoryName={currentCategory?.name} bannerImage={currentCategory?.banner} />
@@ -452,7 +470,15 @@ export default function CategoryView() {
                 </View>
               )
             }
-            ListFooterComponent={<View style={{ height: Platform.OS === 'android' ? 200 : 160 }} />}
+            ListFooterComponent={
+              isFetchingNextProducts ? (
+                <View className="py-4 items-center justify-center" style={{ marginBottom: Platform.OS === 'android' ? 200 : 160 }}>
+                  <Text className="text-gray-500 text-xs font-bold">Memuat...</Text>
+                </View>
+              ) : (
+                <View style={{ height: Platform.OS === 'android' ? 200 : 160 }} />
+              )
+            }
             renderItem={({ item: product, index: idx }) => {
               let p = { ...product };
               if (typeof p.time_slot === 'string') {
@@ -499,11 +525,6 @@ export default function CategoryView() {
                       {p.time_slot && p.time_slot.start_time && (
                         <View className="absolute top-0 left-0 bg-green-700/90 px-2 py-1 rounded-br-xl z-10 flex-col shadow-sm">
                           <Text className="text-[9px] font-black uppercase tracking-wider text-yellow-300">Fresh</Text>
-                          {isSlotExpired && (
-                            <Text className="text-[7.5px] font-medium text-white mt-0.5">
-                              Ready {p.time_slot.start_time.substring(0, 5)} Besok
-                            </Text>
-                          )}
                         </View>
                       )}
                       <Image source={displayImage} className="w-full h-full" contentFit="contain" transition={200} />
@@ -512,6 +533,11 @@ export default function CategoryView() {
                     <Text className="text-[11px] font-extrabold text-gray-800 mb-1" numberOfLines={2}>
                       {p.name}
                     </Text>
+                    {isSlotExpired && (
+                      <View className="bg-gray-200 self-start px-2 py-0.5 rounded-[5px] mb-1">
+                        <Text className="text-[9px] font-bold text-gray-700">Tersedia besok</Text>
+                      </View>
+                    )}
                     
                     <View className="flex-row flex-wrap">
                       {p.choice_options?.map((item, idx) => (
@@ -565,8 +591,11 @@ export default function CategoryView() {
 
       {/* Top Sheet Modal (Lihat Semua) */}
       <Modal visible={isTopSheetOpen} transparent animationType="fade">
-        <TouchableOpacity activeOpacity={1} onPress={() => setIsTopSheetOpen(false)} className="flex-1 bg-black/60 pt-[90px]">
-          <View className="bg-white rounded-b-3xl shadow-xl overflow-hidden">
+        <TouchableOpacity activeOpacity={1} onPress={() => setIsTopSheetOpen(false)} className="flex-1 bg-black/60 items-center">
+          <View 
+            className="bg-white rounded-b-3xl shadow-xl overflow-hidden pt-[90px] w-full"
+            style={{ maxWidth: Platform.OS === 'web' ? 600 : '100%' }}
+          >
             <View className="flex-row flex-wrap p-4">
               {displayCategories.map((cat, idx) => {
                 const isCatActive = String(cat.id) === String(category_id);

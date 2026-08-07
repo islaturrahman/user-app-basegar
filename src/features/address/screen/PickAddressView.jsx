@@ -45,6 +45,12 @@ const PickAddressView = () => {
   const [isMapReady, setIsMapReady] = useState(false);
   const [snackbar, setSnackbar] = useState({ show: false, message: "" });
 
+  // Fail-safe to hide loading overlay if mapReady message fails
+  useEffect(() => {
+    const timer = setTimeout(() => setIsMapReady(true), 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
   const triggerSnackbar = (message) => {
     setSnackbar({ show: true, message });
     setTimeout(() => {
@@ -98,12 +104,18 @@ const PickAddressView = () => {
     isProgrammaticMove.current = true;
     setMapCenter({ lat, lng });
     if (webViewRef.current && isMapReady) {
-      webViewRef.current.injectJavaScript(`
-        if (window.map) {
-          window.map.flyTo([${lat}, ${lng}], 16);
+      if (Platform.OS === 'web') {
+        if (webViewRef.current.contentWindow) {
+          webViewRef.current.contentWindow.postMessage(JSON.stringify({ type: 'flyTo', lat, lng }), '*');
         }
-        true;
-      `);
+      } else {
+        webViewRef.current.injectJavaScript(`
+          if (window.map) {
+            window.map.flyTo([${lat}, ${lng}], 16);
+          }
+          true;
+        `);
+      }
     }
   };
 
@@ -163,6 +175,22 @@ const PickAddressView = () => {
     } catch (e) {}
   };
 
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const handleWebMessage = (event) => {
+        try {
+          const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+          if (data && (data.type === 'mapReady' || data.type === 'onMoveEnd')) {
+            handleMessage({ nativeEvent: { data: JSON.stringify(data) } });
+          }
+        } catch (e) {}
+      };
+      window.addEventListener('message', handleWebMessage);
+      return () => window.removeEventListener('message', handleWebMessage);
+    }
+  }, [mapCenter]);
+
+
   // Cek jangkauan (coverage)
   const storeLat = parseFloat(config?.ecommerce_location_coverage?.latitude || 0);
   const storeLng = parseFloat(config?.ecommerce_location_coverage?.longitude || 0);
@@ -198,8 +226,8 @@ const PickAddressView = () => {
     <html>
     <head>
       <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
       <style>
         body { padding: 0; margin: 0; }
         html, body, #map { height: 100vh; width: 100vw; }
@@ -222,6 +250,17 @@ const PickAddressView = () => {
         <circle cx="12" cy="10" r="3" fill="#ffffff"></circle>
       </svg>
       <script>
+        var safePostMessage = function(data) {
+          var msg = JSON.stringify(data);
+          if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+            window.ReactNativeWebView.postMessage(msg);
+          } else if (window.parent && window.parent.postMessage) {
+            window.parent.postMessage(msg, '*');
+          } else {
+            console.warn('postMessage not available');
+          }
+        };
+
         window.map = L.map('map', { zoomControl: false, attributionControl: false }).setView([${mapCenter.lat}, ${mapCenter.lng}], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19
@@ -229,16 +268,26 @@ const PickAddressView = () => {
 
         window.map.on('moveend', function() {
           var center = window.map.getCenter();
-          window.ReactNativeWebView.postMessage(JSON.stringify({
+          safePostMessage({
             type: 'onMoveEnd',
             lat: center.lat,
             lng: center.lng
-          }));
+          });
         });
         
         setTimeout(() => {
-          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'mapReady' }));
+          safePostMessage({ type: 'mapReady' });
         }, 500);
+
+        // Listen for messages from React Native (web fallback)
+        window.addEventListener('message', function(event) {
+          try {
+            var data = JSON.parse(event.data);
+            if (data.type === 'flyTo' && window.map) {
+              window.map.flyTo([data.lat, data.lng], 16);
+            }
+          } catch(e) {}
+        });
       </script>
     </body>
     </html>
@@ -250,17 +299,31 @@ const PickAddressView = () => {
 
       {/* Map Area */}
       <View className="flex-1 relative">
-        <WebView
-          ref={webViewRef}
-          source={{ html: mapHTML }}
-          onMessage={handleMessage}
-          javaScriptEnabled={true}
-          scrollEnabled={false}
-          bounces={false}
-          showsVerticalScrollIndicator={false}
-          showsHorizontalScrollIndicator={false}
-          style={{ flex: 1, backgroundColor: '#e5e7eb' }}
-        />
+        {!isMapReady && (
+          <View className="absolute inset-0 bg-[#e5e7eb] z-40 flex-col items-center justify-center">
+            <ActivityIndicator size="large" color="#16a34a" />
+            <Text className="text-gray-500 mt-3 text-sm font-medium">Memuat Peta...</Text>
+          </View>
+        )}
+        {Platform.OS === 'web' ? (
+          <iframe
+            ref={webViewRef}
+            srcDoc={mapHTML}
+            style={{ border: 'none', width: '100%', height: '100%', backgroundColor: '#e5e7eb', flex: 1 }}
+          />
+        ) : (
+          <WebView
+            ref={webViewRef}
+            source={{ html: mapHTML }}
+            onMessage={handleMessage}
+            javaScriptEnabled={true}
+            scrollEnabled={false}
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+            showsHorizontalScrollIndicator={false}
+            style={{ flex: 1, backgroundColor: '#e5e7eb' }}
+          />
+        )}
         
         {/* Search Overlay */}
         <View className="absolute top-4 left-4 right-4 z-50">
@@ -333,13 +396,25 @@ const PickAddressView = () => {
               <Text className="ml-3 text-xs text-gray-500 font-medium">Mendapatkan detail alamat...</Text>
             </View>
           ) : selectedLocation ? (
-            <View className="mb-4">
-              <View className="flex-row items-center mb-1">
-                <FontAwesome5 name="map-marker-alt" size={12} color="#16a34a" />
-                <Text className="text-[10px] font-bold text-green-700 uppercase tracking-wider ml-1.5">Lokasi Terpilih</Text>
+            isOutOfCoverage ? (
+              <View className="mb-4 py-3 px-3 bg-red-50 border border-red-200 rounded-lg flex-row items-center justify-center">
+                <FontAwesome5 name="exclamation-circle" size={16} color="#dc2626" />
+                <Text className="text-red-700 text-sm font-bold ml-2">Belum ada pelayanan di alamat ini</Text>
               </View>
-              <Text className="text-sm font-bold text-gray-900 mb-1" numberOfLines={1}>{selectedLocation.name}</Text>
-              <Text className="text-xs text-gray-600 leading-relaxed" numberOfLines={2}>{selectedLocation.description}</Text>
+            ) : (
+              <View className="mb-4">
+                <View className="flex-row items-center mb-1">
+                  <FontAwesome5 name="map-marker-alt" size={12} color="#16a34a" />
+                  <Text className="text-[10px] font-bold text-green-700 uppercase tracking-wider ml-1.5">Lokasi Terpilih</Text>
+                </View>
+                <Text className="text-sm font-bold text-gray-900 mb-1" numberOfLines={1}>{selectedLocation.name}</Text>
+                <Text className="text-xs text-gray-600 leading-relaxed" numberOfLines={2}>{selectedLocation.description}</Text>
+              </View>
+            )
+          ) : !isMapReady ? (
+            <View className="flex-row items-center mb-4">
+              <ActivityIndicator size="small" color="#16a34a" />
+              <Text className="ml-3 text-xs text-gray-500 font-medium">Memuat peta, harap tunggu...</Text>
             </View>
           ) : (
             <View className="mb-4 flex-row items-center space-x-3">
@@ -352,12 +427,6 @@ const PickAddressView = () => {
         </View>
 
         <View>
-          {isOutOfCoverage && (
-            <View className="mb-3 py-2 px-3 bg-red-50 border border-red-200 rounded-lg flex-row items-center justify-center">
-              <FontAwesome5 name="exclamation-circle" size={12} color="#dc2626" />
-              <Text className="text-red-700 text-xs font-bold ml-2">Belum ada pelayanan di alamat ini</Text>
-            </View>
-          )}
 
           <TouchableOpacity
             onPress={handleConfirmLocation}

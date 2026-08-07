@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { View, Text, Image as RNImage, TouchableOpacity, FlatList, ScrollView, Dimensions, Modal, Platform } from "react-native";
 import { Image } from "expo-image";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useNavigation } from "@react-navigation/native";
 
@@ -23,8 +23,6 @@ import TimeslotModal from "../../../components/TimeslotModal";
 import { path_product_img } from "../../../config/enpoints";
 const toRupiah = (price) => `Rp ${price.toLocaleString('id-ID')}`;
 
-const { width } = Dimensions.get('window');
-
 const PromoImage = ({ src, fallbackEmoji, bgColor }) => {
   const [hasError, setHasError] = useState(false);
   return (
@@ -45,13 +43,16 @@ const PromoImage = ({ src, fallbackEmoji, bgColor }) => {
 };
 
 export default function Home() {
+  const windowWidth = Dimensions.get('window').width;
+  const width = Platform.OS === 'web' ? Math.min(windowWidth, 600) : windowWidth;
+
   const navigation = useNavigation();
   
   const { fetchProducts, deliveryDate, setDeliveryDate } = useContext(ProductsContext);
   const { config } = useContext(ConfigContext);
   const { cart, getCart, addToCart, addQuantity, minQuantity } = useContext(CartContext);
 
-  const [page, setPage] = useState(1);
+  // page state removed as useInfiniteQuery handles it
   const [showModal, setShowModal] = useState(false);
   const [pendingProduct, setPendingProduct] = useState(null);
 
@@ -101,16 +102,29 @@ export default function Home() {
     setPendingProduct(null);
   };
 
-  const { data: products = [], isFetching, refetch } = useQuery({
-    queryKey: ['homeProducts', deliveryDate, page],
-    queryFn: async () => {
+  const { 
+    data, 
+    isFetching, 
+    isFetchingNextPage, 
+    hasNextPage, 
+    fetchNextPage, 
+    refetch 
+  } = useInfiniteQuery({
+    queryKey: ['homeProducts', deliveryDate],
+    queryFn: async ({ pageParam = 1 }) => {
       if (!fetchProducts) return [];
-      const model = await fetchProducts({ page, limit: 10 });
+      const model = await fetchProducts({ page: pageParam, limit: 10 });
       return (model && typeof model.getProducts === 'function') 
         ? model.getProducts() 
         : (Array.isArray(model) ? model : []);
-    }
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length === 10 ? allPages.length + 1 : undefined;
+    },
+    initialPageParam: 1,
   });
+
+  const products = data ? data.pages.flat() : [];
 
   const handleRefresh = async () => {
     await refetch();
@@ -243,19 +257,19 @@ export default function Home() {
             {p.time_slot && p.time_slot.start_time && (
               <View className="absolute top-0 left-0 bg-green-700/90 px-2 py-1 rounded-br-xl z-10 flex-col shadow-sm">
                 <Text className="text-[9px] font-black uppercase tracking-wider text-yellow-300">Fresh</Text>
-                {isSlotExpired && (
-                  <Text className="text-[7.5px] font-medium text-white mt-0.5">
-                    Ready {p.time_slot.start_time.substring(0, 5)} Besok
-                  </Text>
-                )}
               </View>
             )}
-            <Image source={displayImage} className="w-full h-full" contentFit="contain" transition={200} />
+            <Image source={{ uri: displayImage }} className="w-full h-full" contentFit="contain" transition={200} />
           </View>
           
           <Text className="text-[11px] font-extrabold text-gray-800 mb-1" numberOfLines={2}>
             {p.name}
           </Text>
+          {isSlotExpired && (
+            <View className="bg-gray-200 self-start px-2 py-0.5 rounded-[5px] mb-1">
+              <Text className="text-[9px] font-bold text-gray-700">Tersedia besok</Text>
+            </View>
+          )}
           
           <View className="flex-row flex-wrap">
             {p.choice_options?.map((item, idx) => (
@@ -313,15 +327,28 @@ export default function Home() {
         key={'3-columns'}
         data={products}
         extraData={cart}
-        keyExtractor={item => item.id.toString()}
+        keyExtractor={(item, index) => `${item.id}-${index}`}
         numColumns={3}
         renderItem={renderProduct}
         ListHeaderComponent={renderHeader()}
         contentContainerStyle={{ paddingBottom: Platform.OS === 'android' ? 200 : 160 }}
         columnWrapperStyle={{ paddingHorizontal: 8 }}
         showsVerticalScrollIndicator={false}
-        refreshing={isFetching}
+        refreshing={isFetching && !isFetchingNextPage}
         onRefresh={handleRefresh}
+        onEndReached={() => {
+          if (hasNextPage && !isFetchingNextPage) {
+            fetchNextPage();
+          }
+        }}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          isFetchingNextPage ? (
+            <View className="py-4 items-center justify-center">
+              <Text className="text-gray-500 text-xs font-bold">Memuat...</Text>
+            </View>
+          ) : null
+        }
       />
       
       {/* Bottom Menu Anchor */}

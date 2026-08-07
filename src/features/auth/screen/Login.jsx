@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Image } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Image, DeviceEventEmitter } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FontAwesome5 } from "@expo/vector-icons";
@@ -34,10 +34,21 @@ const Login = () => {
       setError("Tolong masukkan nomor HP anda");
       return;
     }
+
+    // Bersihkan karakter selain angka dan +
+    const cleanPhone = phoneNumber.replace(/[^\d+]/g, '');
+    const digitOnly = cleanPhone.replace(/\D/g, '');
+
+    // Izinkan nomor telepon dengan panjang 10 hingga 14 digit angka (misal: 08123456789 = 11 digit)
+    if (digitOnly.length < 10 || digitOnly.length > 14) {
+      setError("Nomor HP tidak valid. Masukkan 10-14 digit angka.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     try {
-      const formattedPhoneNumber = formatNumberPhone(phoneNumber);
+      const formattedPhoneNumber = formatNumberPhone(cleanPhone);
       const response = await post(check_phone, {
         phone: formattedPhoneNumber,
       });
@@ -93,9 +104,8 @@ const Login = () => {
 
       if (response && response.status && response.token) {
         await AsyncStorage.setItem("authToken", response.token);
-        import('react-native').then(({ DeviceEventEmitter }) => {
-          DeviceEventEmitter.emit('authStateChanged', true);
-        });
+        DeviceEventEmitter.emit('authStateChanged', true);
+        
         // Reset and go to Home or Account
         navigation.reset({
           index: 0,
@@ -127,9 +137,17 @@ const Login = () => {
     >
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         {/* Header */}
-        <View className="pt-14 px-6 mb-8 flex-row items-center z-10">
+        <View className={`${Platform.OS === 'web' ? 'pt-6' : 'pt-14'} px-6 mb-8 flex-row items-center z-10`}>
           <TouchableOpacity 
-            onPress={() => step === "otp" ? setStep("phone") : navigation.goBack()}
+            onPress={() => {
+              if (step === "otp") {
+                setStep("phone");
+              } else if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.replace("/"); // or navigation.navigate("/")
+              }
+            }}
             className="flex-row items-center"
           >
             <FontAwesome5 name="arrow-left" size={20} color="#15803d" />
@@ -242,6 +260,23 @@ const Login = () => {
               activeOpacity={0.8}
             >
               <Text className="text-white font-bold text-base">LANJUT</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Policy Links */}
+        <View className="px-6 mt-8">
+          <View className="flex-row justify-center items-center flex-wrap mt-2">
+            <TouchableOpacity onPress={() => navigation.navigate("/about-us")}>
+              <Text className="text-[#15803d] text-[11px] font-medium">Tentang Kami</Text>
+            </TouchableOpacity>
+            <Text className="text-gray-300 mx-2">•</Text>
+            <TouchableOpacity onPress={() => navigation.navigate("/privacy-policy")}>
+              <Text className="text-[#15803d] text-[11px] font-medium">Kebijakan Privasi</Text>
+            </TouchableOpacity>
+            <Text className="text-gray-300 mx-2">•</Text>
+            <TouchableOpacity onPress={() => navigation.navigate("/terms-and-conditions")}>
+              <Text className="text-[#15803d] text-[11px] font-medium">Syarat & Ketentuan</Text>
             </TouchableOpacity>
           </View>
         </View>

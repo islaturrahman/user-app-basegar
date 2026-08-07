@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Image, ActivityIndicator } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Image, ActivityIndicator, Platform } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { FontAwesome5 } from "@expo/vector-icons";
 import * as Location from 'expo-location';
@@ -239,15 +239,15 @@ const AddAddressView = () => {
             className="h-40 w-full bg-gray-200 rounded-2xl overflow-hidden border border-gray-200 mb-4 relative"
           >
             <View pointerEvents="none" style={{ flex: 1 }}>
-              <WebView
-                source={{
-                  html: `
+              {Platform.OS === 'web' ? (
+                <iframe
+                  srcDoc={`
                     <!DOCTYPE html>
                     <html>
                     <head>
                       <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-                      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-                      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+                      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+                      <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
                       <style>
                         body { padding: 0; margin: 0; }
                         html, body, #map { height: 100vh; width: 100vw; }
@@ -269,13 +269,48 @@ const AddAddressView = () => {
                       </script>
                     </body>
                     </html>
-                  `
-                }}
-                style={{ flex: 1 }}
-                scrollEnabled={false}
-                showsVerticalScrollIndicator={false}
-                showsHorizontalScrollIndicator={false}
-              />
+                  `}
+                  style={{ border: 'none', width: '100%', height: '100%', flex: 1 }}
+                />
+              ) : (
+                <WebView
+                  source={{
+                    html: `
+                      <!DOCTYPE html>
+                      <html>
+                      <head>
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+                        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+                        <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+                        <style>
+                          body { padding: 0; margin: 0; }
+                          html, body, #map { height: 100vh; width: 100vw; }
+                        </style>
+                      </head>
+                      <body>
+                        <div id="map"></div>
+                        <script>
+                          var map = L.map('map', { 
+                            zoomControl: false, 
+                            attributionControl: false,
+                            dragging: false,
+                            touchZoom: false,
+                            scrollWheelZoom: false,
+                            doubleClickZoom: false
+                          }).setView([${address.lat}, ${address.lng}], 16);
+                          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+                          L.marker([${address.lat}, ${address.lng}]).addTo(map);
+                        </script>
+                      </body>
+                      </html>
+                    `
+                  }}
+                  style={{ flex: 1 }}
+                  scrollEnabled={false}
+                  showsVerticalScrollIndicator={false}
+                  showsHorizontalScrollIndicator={false}
+                />
+              )}
             </View>
           </TouchableOpacity>
         ) : null}

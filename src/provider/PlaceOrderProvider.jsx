@@ -1,5 +1,5 @@
 import { createContext, React, useContext, useState, useRef } from "react";
-import { Linking, Modal, TouchableOpacity, Text, View, ActivityIndicator } from "react-native";
+import { Linking, Modal, TouchableOpacity, Text, View, ActivityIndicator, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { WebView } from "react-native-webview";
@@ -228,7 +228,7 @@ const OrderPlaceProvider = ({ children }) => {
         onRequestClose={closePaymentModal}
       >
         <View className="flex-1 bg-black/60 justify-end">
-          <View className="bg-white rounded-t-3xl overflow-hidden h-[85%] shadow-lg">
+          <View className="bg-white rounded-t-3xl overflow-hidden h-[85%] shadow-lg w-full max-w-[600px] self-center">
             {/* Header */}
             <View className="flex-row justify-between items-center px-5 py-4 border-b border-gray-100 bg-white shadow-sm">
               <View>
@@ -245,21 +245,32 @@ const OrderPlaceProvider = ({ children }) => {
             
             {/* WebView */}
             {paymentUrl ? (
-              <WebView
-                source={{ uri: paymentUrl }}
-                style={{ flex: 1 }}
-                onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
-                startInLoadingState={true}
-                renderLoading={() => (
-                  <View className="absolute inset-0 items-center justify-center bg-white z-10">
-                    <ActivityIndicator size="large" color="#15803d" />
-                    <Text className="text-xs text-gray-500 mt-3 font-medium">Memuat halaman pembayaran...</Text>
-                  </View>
-                )}
-                javaScriptEnabled={true}
-                domStorageEnabled={true}
-                scalesPageToFit={true}
-              />
+              Platform.OS === 'web' ? (
+                <View style={{ flex: 1, backgroundColor: 'white' }}>
+                  <iframe 
+                    src={paymentUrl} 
+                    style={{ flex: 1, width: '100%', height: '100%', border: 'none' }} 
+                    title="Payment"
+                    allow="payment"
+                  />
+                </View>
+              ) : (
+                <WebView
+                  source={{ uri: paymentUrl }}
+                  style={{ flex: 1 }}
+                  onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
+                  startInLoadingState={true}
+                  renderLoading={() => (
+                    <View className="absolute inset-0 items-center justify-center bg-white z-10">
+                      <ActivityIndicator size="large" color="#15803d" />
+                      <Text className="text-xs text-gray-500 mt-3 font-medium">Memuat halaman pembayaran...</Text>
+                    </View>
+                  )}
+                  javaScriptEnabled={true}
+                  domStorageEnabled={true}
+                  scalesPageToFit={true}
+                />
+              )
             ) : null}
             
             <SafeAreaView className="bg-white" />

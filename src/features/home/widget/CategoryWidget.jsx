@@ -1,5 +1,5 @@
 import React, { useRef, useState, useContext } from "react";
-import { View, Text, TouchableOpacity, Dimensions, FlatList } from "react-native";
+import { View, Text, TouchableOpacity, FlatList, Platform, Dimensions } from "react-native";
 import ImageWithSkeleton from "../../../components/ImageWithSkeleton";
 import { useNavigation } from "@react-navigation/native";
 import { path_category_img, base_url, category } from "../../../config/enpoints";
@@ -7,6 +7,10 @@ import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 
 export default function CategoryWidget() {
+  const windowWidth = Dimensions.get('window').width;
+  const screenWidth = Platform.OS === 'web' ? Math.min(windowWidth, 600) : windowWidth;
+  const layoutWidth = screenWidth - 32; // Assuming parent has px-4
+
   const navigation = useNavigation();
   const [activePage, setActivePage] = useState(0);
   const { data: catData = [], isLoading } = useQuery({
@@ -58,8 +62,6 @@ export default function CategoryWidget() {
     chunkedCategories.push(categoriesList.slice(i, i + 2));
   }
 
-  const screenWidth = Dimensions.get('window').width;
-  const layoutWidth = screenWidth - 32; // Assuming parent has px-4
   const columnsPerPage = 5;
   const columnWidth = layoutWidth / columnsPerPage;
   const totalPages = Math.ceil(chunkedCategories.length / columnsPerPage) || 1;
@@ -100,8 +102,8 @@ export default function CategoryWidget() {
                 onPress={() => handleClickCategory(cat)}
               >
                 <View className="w-14 h-14 rounded-full overflow-hidden border border-gray-100 bg-green-50 flex items-center justify-center">
-                  <Image
-                    source={cat.image}
+                  <Image 
+                    source={{ uri: cat.image }}
                     className="w-full h-full"
                     contentFit="cover"
                     transition={200}

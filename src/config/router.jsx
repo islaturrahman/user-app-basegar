@@ -19,6 +19,8 @@ import OrdersView from "../features/orders/screen/OrdersView";
 import OrderDetailView from "../features/orders/screen/OrderDetailView";
 import OrderSuccessView from "../features/orders/screen/OrderSuccessView";
 import ChatCsView from "../features/cs/screen/ChatCsView";
+import StaticPage from "../features/user/screen/StaticPage";
+import VoucherView from "../features/voucher/screen/VoucherView";
 // ... dan lain-lain
 const Stack = createNativeStackNavigator();
 
@@ -63,7 +65,7 @@ export default function Router() {
   }
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
       {/* 
         ========================================================
         RUTE PUBLIK (Dapat diakses siapa saja, termasuk yang belum login)
@@ -75,16 +77,20 @@ export default function Router() {
       <Stack.Screen 
         name="/p/:id" 
         component={ProductDetails} 
-        options={{ presentation: 'transparentModal' }}
+        options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }}
       />
       <Stack.Screen name="/login" component={Login} />
       <Stack.Screen name="/signup" component={PlaceholderScreen} />
+      <Stack.Screen name="/static" component={StaticPage} />
+      <Stack.Screen name="/privacy-policy" component={StaticPage} initialParams={{ type: 'privacy_policy', title: 'Kebijakan Privasi' }} />
+      <Stack.Screen name="/terms-and-conditions" component={StaticPage} initialParams={{ type: 'terms_and_conditions', title: 'Syarat & Ketentuan' }} />
+      <Stack.Screen name="/about-us" component={StaticPage} initialParams={{ type: 'about_us', title: 'Tentang Kami' }} />
       
       {/* Produk & Delivery */}
       <Stack.Screen name="/check-maxim" component={PlaceholderScreen} />
       
       {/* Penemuan */}
-      <Stack.Screen name="/voucher" component={PlaceholderScreen} />
+      <Stack.Screen name="/voucher" component={VoucherView} />
       <Stack.Screen name="/categories/:category_id" component={CategoryView} />
       <Stack.Screen name="/games" component={PlaceholderScreen} />
       <Stack.Screen name="/games/watermelon-game" component={PlaceholderScreen} />

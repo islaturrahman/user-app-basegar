@@ -10,6 +10,10 @@ export default function NetworkMonitor() {
     // Custom ping interval as fallback for netinfo
     const interval = setInterval(async () => {
       try {
+        if (Platform.OS === 'web') {
+          setIsConnected(window.navigator.onLine);
+          return;
+        }
         const response = await fetch('https://1.1.1.1', { method: 'HEAD', cache: 'no-cache' });
         setIsConnected(response.ok);
       } catch (e) {

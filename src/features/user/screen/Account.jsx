@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Alert, DeviceEventEmitter, Platform } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import AppBar from "../../../components/AppBar";
@@ -17,25 +17,32 @@ export default function Account() {
   const navigation = useNavigation();
 
   const handleLogout = async () => {
-    Alert.alert(
-      "Logout",
-      "Apakah Anda yakin ingin keluar?",
-      [
-        { text: "Batal", style: "cancel" },
-        {
-          text: "Logout",
-          style: "destructive",
-          onPress: async () => {
-            await AsyncStorage.removeItem("authToken");
-            await AsyncStorage.removeItem("user");
-            import('react-native').then(({ DeviceEventEmitter }) => {
+    if (Platform.OS === 'web') {
+      if (window.confirm("Apakah Anda yakin ingin keluar?")) {
+        await AsyncStorage.removeItem("authToken");
+        await AsyncStorage.removeItem("user");
+        DeviceEventEmitter.emit('authStateChanged', false);
+        navigation.reset({ index: 0, routes: [{ name: "/login" }] });
+      }
+    } else {
+      Alert.alert(
+        "Logout",
+        "Apakah Anda yakin ingin keluar?",
+        [
+          { text: "Batal", style: "cancel" },
+          {
+            text: "Logout",
+            style: "destructive",
+            onPress: async () => {
+              await AsyncStorage.removeItem("authToken");
+              await AsyncStorage.removeItem("user");
               DeviceEventEmitter.emit('authStateChanged', false);
-            });
-            navigation.reset({ index: 0, routes: [{ name: "/login" }] });
+              navigation.reset({ index: 0, routes: [{ name: "/login" }] });
+            }
           }
-        }
-      ]
-    );
+        ]
+      );
+    }
   };
 
   const getCustomerInfo = async () => {
@@ -136,8 +143,7 @@ export default function Account() {
         </View>
 
         {/* Menu Items */}
-        <View className="bg-white px-6 pt-2 mt-4 pb-24">
-          
+        <View className="bg-white px-6 pt-2 mt-4">
           <TouchableOpacity 
             onPress={() => navigation.navigate("/orders")}
             className="flex-row items-center border-b border-gray-300 pb-3"
@@ -179,16 +185,64 @@ export default function Account() {
             </View>
             <FontAwesome5 name="arrow-right" size={16} color="#6b7280" />
           </TouchableOpacity>
+        </View>
+
+        {/* Informasi & Kebijakan Section */}
+        <View className="bg-white px-6 mt-4">
+          <Text className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">Informasi & Kebijakan</Text>
+          
+          <TouchableOpacity 
+            onPress={() => navigation.navigate("/about-us")}
+            className="flex-row items-center border-b border-gray-300 pb-3"
+          >
+            <View className="border border-gray-200 rounded-full p-2 items-center justify-center w-10 h-10">
+              <FontAwesome5 name="info-circle" size={16} color="#15803d" />
+            </View>
+            <View className="ml-3 flex-1">
+              <Text className="font-light text-base text-gray-800">Tentang Kami</Text>
+            </View>
+            <FontAwesome5 name="arrow-right" size={16} color="#6b7280" />
+          </TouchableOpacity>
 
           <TouchableOpacity 
+            onPress={() => navigation.navigate("/privacy-policy")}
+            className="flex-row items-center border-b border-gray-300 pb-3 mt-4"
+          >
+            <View className="border border-gray-200 rounded-full p-2 items-center justify-center w-10 h-10">
+              <FontAwesome5 name="shield-alt" size={16} color="#15803d" />
+            </View>
+            <View className="ml-3 flex-1">
+              <Text className="font-light text-base text-gray-800">Kebijakan Privasi</Text>
+            </View>
+            <FontAwesome5 name="arrow-right" size={16} color="#6b7280" />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            onPress={() => navigation.navigate("/terms-and-conditions")}
+            className="flex-row items-center border-b border-gray-300 pb-3 mt-4"
+          >
+            <View className="border border-gray-200 rounded-full p-2 items-center justify-center w-10 h-10">
+              <FontAwesome5 name="file-contract" size={16} color="#15803d" />
+            </View>
+            <View className="ml-3 flex-1">
+              <Text className="font-light text-base text-gray-800">Syarat & Ketentuan</Text>
+            </View>
+            <FontAwesome5 name="arrow-right" size={16} color="#6b7280" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Logout Section */}
+        <View className="bg-white px-6 pb-24 mt-4">
+          <TouchableOpacity 
             onPress={handleLogout}
-            className="flex-row items-center pb-3 mt-4"
+            className="flex-row items-center pb-3"
           >
             <View className="border border-gray-200 rounded-full p-2 items-center justify-center w-10 h-10">
               <FontAwesome5 name="sign-out-alt" size={16} color="#6b7280" />
             </View>
             <View className="ml-3 flex-1">
               <Text className="font-light text-base text-gray-800">Logout</Text>
+              <Text className="text-sm text-gray-400 font-light mt-0.5">Keluar dari akun Anda</Text>
             </View>
           </TouchableOpacity>
         </View>

@@ -259,6 +259,9 @@ class ConfigModel {
       config.cancellation_policy || this.cancellation_policy;
     this.refund_policy = config.refund_policy || this.refund_policy;
     this.return_policy = config.return_policy || this.return_policy;
+    this.privacy_policy = config.privacy_policy || this.privacy_policy;
+    this.terms_and_conditions = config.terms_and_conditions || this.terms_and_conditions;
+    this.about_us = config.about_us || this.about_us;
 
     // contact details
     if (config.whatsapp) {

@@ -28,7 +28,11 @@ const CartProvider = ({ children }) => {
       return updatedCart;
     },
     onSuccess: (updatedCart) => {
+      console.log("Cart updated successfully, items:", updatedCart?.length);
       queryClient.setQueryData(["cart"], updatedCart);
+    },
+    onError: (error) => {
+      console.error("Cart mutation error:", error);
     }
   });
 

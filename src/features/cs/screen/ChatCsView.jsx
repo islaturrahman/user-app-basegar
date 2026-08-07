@@ -8,7 +8,8 @@ import {
   Image, 
   KeyboardAvoidingView, 
   Platform,
-  ActivityIndicator
+  ActivityIndicator,
+  Keyboard
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -32,7 +33,8 @@ export default function ChatCsView() {
     globalUnreadCount,
     setGlobalUnreadCount, 
     userId,
-    lastMessageCountRef 
+    lastMessageCountRef,
+    chatError
   } = useContext(ChatContext) || { messages: [], globalUnreadCount: 0 };
 
   const [inputMessage, setInputMessage] = useState("");
@@ -42,6 +44,21 @@ export default function ChatCsView() {
   
   const [showScrollBottomBtn, setShowScrollBottomBtn] = useState(false);
   const flatListRef = useRef(null);
+
+  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => {
+      setKeyboardVisible(true);
+    });
+    const hideSub = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => {
+      setKeyboardVisible(false);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     // Clear unread count when opening the chat screen
@@ -174,8 +191,8 @@ export default function ChatCsView() {
     const content = isAdmin ? item.reply : item.message;
     if (!content) return null;
 
-    const timeStr = item.created_at
-      ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    const timeStr = (item.created_at && typeof item.created_at === 'string')
+      ? new Date(item.created_at.replace(' ', 'T')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       : "";
 
     return (
@@ -220,7 +237,7 @@ export default function ChatCsView() {
                 isAdmin ? "text-gray-400" : "text-green-200"
               }`}
             >
-              {timeStr} {isAdmin && "• CS Toru"}
+              {timeStr} {isAdmin && "• CS Basegar"}
             </Text>
           </View>
         </View>
@@ -243,12 +260,16 @@ export default function ChatCsView() {
 
   return (
     <SafeAreaView className="flex-1 bg-[#f7f9fa]">
-      <KeyboardAvoidingView 
-        className="flex-1" 
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior="padding"
+        style={Platform.OS === 'android' && !isKeyboardVisible ? {bottom: 30} : {}}
       >
+        
         {/* Header */}
-        <View className="bg-white border-b border-gray-100 px-4 py-3 flex-row items-center z-10 shadow-sm">
+        <View className={`bg-white border-b border-gray-100 px-4 py-3 flex-row items-center z-10 shadow-sm ${Platform.OS === 'android' ? 'mt-8' : ''}`}
+    
+        >
           <TouchableOpacity 
             onPress={() => navigation.goBack()}
             className="w-8 h-8 rounded-full items-center justify-center mr-2"
@@ -264,7 +285,7 @@ export default function ChatCsView() {
               <View className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
             </View>
             <View className="ml-3">
-              <Text className="text-sm font-bold text-gray-800">Customer Service</Text>
+              <Text className="text-sm font-bold text-gray-800">Customer Service {userId ? `(#${userId})` : '(No ID)'}</Text>
               <View className="flex-row items-center mt-0.5">
                 <View className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1" />
                 <Text className="text-[10px] text-emerald-600 font-medium">Online • Siap Membantu</Text>
@@ -288,6 +309,11 @@ export default function ChatCsView() {
               <Text className="text-[11px] text-gray-400 text-center">
                 Kirimkan pertanyaan atau kendala pesanan Anda. Tim CS kami akan merespon pesan Anda.
               </Text>
+              {chatError ? (
+                <Text className="text-[10px] text-red-500 font-bold text-center mt-3 bg-red-50 px-2 py-1 rounded">
+                  Error: {chatError}
+                </Text>
+              ) : null}
             </View>
           ) : (
               <FlatList
@@ -319,7 +345,10 @@ export default function ChatCsView() {
         </View>
 
         {/* Input Bar */}
-        <View className="bg-white border-t border-gray-100 p-3 pb-[33px]">
+        <View 
+          className={`bg-white border-t border-gray-100 p-3 ${isKeyboardVisible ? 'pb-3' : 'pb-[33px]'}`}
+          style={Platform.OS === 'web' ? { paddingBottom: 80 } : {}}
+        >
           {productEmbed ? (
             <View className="mb-2 bg-emerald-50 border border-emerald-100 p-2 rounded-lg flex-row justify-between items-center">
               <Text className="text-[10px] text-emerald-800 flex-1" numberOfLines={1}>
@@ -354,7 +383,6 @@ export default function ChatCsView() {
             </TouchableOpacity>
           </View>
         </View>
-
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

@@ -1,10 +1,11 @@
 import React, { useContext } from 'react';
-import { View, Text, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, Keyboard } from 'react-native';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import CartContext from '../context/CartContext';
 import ChatContext from '../context/ChatContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useState, useEffect } from 'react';
 
 export function BottomMenu() {
   const { cart } = useContext(CartContext) || { cart: [] };
@@ -38,6 +39,21 @@ export function BottomMenu() {
     }
   };
 
+  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => {
+      setKeyboardVisible(true);
+    });
+    const hideSub = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => {
+      setKeyboardVisible(false);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
   // Hide BottomMenu on specific routes
   const hiddenRoutes = ['/cart', '/checkout', '/o/:id', '/orders'];
   if (
@@ -46,6 +62,8 @@ export function BottomMenu() {
   ) {
     return null;
   }
+
+  if (isKeyboardVisible) return null;
 
   return (
     <View
@@ -110,7 +128,7 @@ export function BottomMenu() {
 
       {/* Keranjang */}
       <TouchableOpacity
-        onPress={() => navigation.navigate('/cart')}
+        onPress={() => handleProtectedNavigation('/cart')}
         className="flex-1 items-center py-1 relative"
       >
         <FontAwesome5 

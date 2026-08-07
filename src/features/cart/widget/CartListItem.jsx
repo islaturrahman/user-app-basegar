@@ -1,6 +1,7 @@
 import React, { useContext, useState } from "react";
 import ProductsContext from "../../../context/ProductsContext";
-import { View, Text, Image, TouchableOpacity, ScrollView, Alert } from "react-native";
+import { View, Text, Image as RNImage, TouchableOpacity, ScrollView, Alert, Platform } from "react-native";
+import { Image } from "expo-image";
 import CartContext from "../../../context/CartContext";
 import { toRupiah } from "../../../components/Helper";
 import { path_product_img } from "../../../config/enpoints";
@@ -28,20 +29,28 @@ const CartListItem = () => {
 
   const handleSelectDate = (dateId) => {
     if (dateId === "today" && expiredFreshCount > 0) {
-       Alert.alert(
-         "Batalkan Centang Produk Fresh?",
-         "Beberapa Produk Fresh sudah melewati batas waktu pemesanan untuk hari ini (hanya bisa dikirim mulai besok). Apakah Anda ingin tetap memilih pengiriman Hari Ini dan mengabaikan (uncheck) produk tersebut?",
-         [
-           { text: "Batal", style: "cancel" },
-           { 
-             text: "Ya, Abaikan", 
-             onPress: () => {
-               updateItemSelection(expiredFreshProducts.map(item => item.product_id), false);
-               setDeliveryDate(dateId);
+       if (Platform.OS === 'web') {
+         const confirm = window.confirm("Batalkan Centang Produk Fresh?\n\nBeberapa Produk Fresh sudah melewati batas waktu pemesanan untuk hari ini (hanya bisa dikirim mulai besok). Apakah Anda ingin tetap memilih pengiriman Hari Ini dan mengabaikan (uncheck) produk tersebut?");
+         if (confirm) {
+           updateItemSelection(expiredFreshProducts.map(item => item.product_id), false);
+           setDeliveryDate(dateId);
+         }
+       } else {
+         Alert.alert(
+           "Batalkan Centang Produk Fresh?",
+           "Beberapa Produk Fresh sudah melewati batas waktu pemesanan untuk hari ini (hanya bisa dikirim mulai besok). Apakah Anda ingin tetap memilih pengiriman Hari Ini dan mengabaikan (uncheck) produk tersebut?",
+           [
+             { text: "Batal", style: "cancel" },
+             { 
+               text: "Ya, Abaikan", 
+               onPress: () => {
+                 updateItemSelection(expiredFreshProducts.map(item => item.product_id), false);
+                 setDeliveryDate(dateId);
+               }
              }
-           }
-         ]
-       );
+           ]
+         );
+       }
     } else {
        // Jika sebelumnya 'today', dan sekarang pilih yang lain, biarkan user centang manual kembali
        setDeliveryDate(dateId);
@@ -160,7 +169,8 @@ const CartListItem = () => {
                 <Image
                   source={{ uri: `${path_product_img}/${item.image}` }}
                   className="w-full h-full"
-                  resizeMode="cover"
+                  contentFit="cover"
+                  transition={200}
                 />
                 {item.variant && item.variant.length > 0 && (
                   <View className="absolute bottom-0 left-0 w-full bg-red-600/90 py-0.5">
@@ -178,13 +188,15 @@ const CartListItem = () => {
                 <View className="flex-row flex-wrap gap-1 mt-1">
                   {item.time_slot && item.time_slot.start_time && (
                     <View className="bg-green-600 py-0.5 px-1.5 rounded flex-row items-center self-start">
-                      <Text className="text-[10px] text-yellow-300 font-bold mr-1">Fresh</Text>
-                      {isSlotExpired && (
-                        <Text className="text-[10px] text-white">Ready {item.time_slot.start_time.substring(0, 5)} Besok</Text>
-                      )}
+                      <Text className="text-[10px] text-yellow-300 font-bold">Fresh</Text>
                     </View>
                   )}
                 </View>
+                {isSlotExpired && (
+                  <View className="bg-gray-200 self-start px-2 py-0.5 rounded-[5px] mt-1">
+                    <Text className="text-[9px] font-bold text-gray-700">Tersedia besok</Text>
+                  </View>
+                )}
               </View>
               
               <View className="flex-row items-center ml-auto bg-gray-50 rounded border border-gray-300 overflow-hidden w-20 h-8">
@@ -213,7 +225,7 @@ const CartListItem = () => {
               source={require("../../../assets/images/not_found.jpg")}
               className="h-96"
               style={{ aspectRatio: 1 }}
-              resizeMode="cover"
+              contentFit="cover"
             />
             {/* <View className="px-6 mt-6">
               <Text className="text-gray-500 font-bold text-center text-lg">Keranjang kamu masih kosong</Text>

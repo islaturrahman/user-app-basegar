@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState, useRef } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator, FlatList } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, FlatList, Platform, Dimensions } from "react-native";
 import ImageWithSkeleton from "../../../components/ImageWithSkeleton";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
@@ -13,9 +13,10 @@ import Snackbar from "../../../components/Snackbar";
 import TimeslotModal from "../../../components/TimeslotModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const { width } = Dimensions.get('window');
-
 const ProductDetails = () => {
+  const windowWidth = Dimensions.get('window').width;
+  const width = Platform.OS === 'web' ? Math.min(windowWidth, 600) : windowWidth;
+  
   const { productDetails, fetchProducts } = useContext(ProductsContext) || {};
   // const { deliveryDate, setDeliveryDate } = useContext(ProductsContext) || {};
   const deliveryDate = "today";
@@ -237,7 +238,7 @@ const ProductDetails = () => {
           {/* Product Image Carousel */}
           <View className="w-full aspect-square bg-gray-100 relative">
             {productImages.length === 0 ? (
-              <View style={{ width, height: width }} className="bg-gray-200 items-center justify-center">
+              <View style={{ width, height: width, backgroundColor: '#e5e7eb', alignItems: 'center', justifyContent: 'center' }}>
                 <Text className="text-gray-400">No Image</Text>
               </View>
             ) : (
@@ -338,8 +339,8 @@ const ProductDetails = () => {
 
           {/* Description */}
           <View className="p-4 border-b border-gray-100 bg-white">
-            <Text className="text-xs text-gray-600 leading-5">
-              {product.description || "Berkualitas tinggi dengan daun hijau cerah dan tekstur yang renyah. Kaya akan serat dan vitamin, ideal untuk salad Caesar, topping sandwich, atau pembungkus menu sehat."}
+            <Text className="text-[13px] text-gray-600 leading-relaxed mb-6">
+              {product.description || "Tidak ada deskripsi produk."}
             </Text>
             <View className="mt-3 pt-3 border-t border-gray-100 flex-row">
                <Text className="text-xs font-bold text-gray-800">Kategori: </Text>
@@ -411,8 +412,8 @@ const ProductDetails = () => {
           </View>
 
           {/* Tab Section */}
-          <View className="p-4 bg-white pb-20">
-            <View className="flex-row border-b border-gray-100 mb-4">
+          <View className="px-4 pt-4 bg-white pb-2">
+            <View className="flex-row border-b border-gray-100 mb-2">
               <TouchableOpacity onPress={() => setActiveTab("serupa")} className="pb-2 mr-6 relative">
                 <Text className={`text-xs font-bold ${activeTab === "serupa" ? "text-green-800" : "text-gray-400"}`}>Produk Serupa</Text>
                 {activeTab === "serupa" && <View className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-800" />}
@@ -433,7 +434,7 @@ const ProductDetails = () => {
             const itemWidth = (width - 40) / 3;
             
             return (
-              <View style={{ width: itemWidth, marginRight: 8, marginBottom: 8 }} className="bg-white rounded-xl border border-gray-100 p-2 justify-between shadow-sm">
+              <View style={{ width: itemWidth, marginRight: 8, marginBottom: 8, backgroundColor: 'white', borderRadius: 12, borderWidth: 1, borderColor: '#f3f4f6', padding: 8, justifyContent: 'space-between', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 }}>
                 <TouchableOpacity onPress={() => handleNavigateAndClose("/p/:id", { id: p.id })}>
                   <View className="w-full aspect-square bg-gray-50 rounded-lg overflow-hidden relative">
                     <Image source={displayImage} className="w-full h-full" contentFit="cover" transition={200} />

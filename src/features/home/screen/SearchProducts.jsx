@@ -87,9 +87,13 @@ const SearchProducts = ({ onClose }) => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white" style={{paddingTop: Platform.OS == 'ios' ?40 : 0}}>
+    <View className="flex-1 items-center bg-black/50">
+      <SafeAreaView 
+        className="flex-1 bg-white w-full" 
+        style={{ paddingTop: Platform.OS == 'ios' ? 40 : 0, maxWidth: Platform.OS === 'web' ? 600 : '100%' }}
+      >
       {/* Search Header */}
-      <View className="flex-row items-center px-4 py-3 border-b border-gray-100 mt-2">å
+      <View className="flex-row items-center px-4 py-3 border-b border-gray-100 mt-2">
         <View className="flex-1 flex-row items-center bg-gray-100 rounded-xl px-3 py-2 h-10">
           <FontAwesome5 name="search" size={14} color="#6b7280" />
           <TextInput
@@ -219,6 +223,7 @@ const SearchProducts = ({ onClose }) => {
         )}
       </ScrollView>
     </SafeAreaView>
+  </View>
   );
 };
 

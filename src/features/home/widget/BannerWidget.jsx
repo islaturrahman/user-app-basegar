@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, Dimensions, TouchableOpacity } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, Platform, Dimensions } from "react-native";
 import Skeleton from "../../../components/Skeleton";
 import { banners, path_banner_img, base_url } from "../../../config/enpoints";
 import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 
-const { width } = Dimensions.get('window');
-
 const BannerWidget = () => {
+  const windowWidth = Dimensions.get('window').width;
+  const width = Platform.OS === 'web' ? Math.min(windowWidth, 600) : windowWidth;
+
   const { data: bannerList = [], isLoading: loading } = useQuery({
     queryKey: ['banners'],
     queryFn: async () => {
@@ -37,8 +38,8 @@ const BannerWidget = () => {
     return img;
   };
 
-  const bannerWidth = width - 32;
-  const bannerHeight = (bannerWidth * (9 / 16)) - 10;
+  const bannerWidth = Math.min(width - 32, 768);
+  const bannerHeight = Math.min((bannerWidth * (9 / 16)) - 10, 320);
 
   if (loading) {
     return (
@@ -65,7 +66,7 @@ const BannerWidget = () => {
         showsHorizontalScrollIndicator={false} 
         className="py-2"
         contentContainerStyle={{ paddingHorizontal: 16 }}
-        pagingEnabled
+        pagingEnabled={Platform.OS !== 'web'}
         snapToInterval={bannerWidth + 12} // width + margin
         decelerationRate="fast"
         renderItem={({item}) => {
@@ -73,9 +74,8 @@ const BannerWidget = () => {
           return (
             <TouchableOpacity className="mr-3" activeOpacity={0.9}>
               <Image 
-                source={parsedImage ? (parsedImage.startsWith('http') ? parsedImage : `${path_banner_img}/${parsedImage}`) : "https://via.placeholder.com/600x300"}
-                style={{ width: bannerWidth, height: bannerHeight }}
-                className="rounded-xl bg-gray-200"
+                source={{ uri: parsedImage ? (parsedImage.startsWith('http') ? parsedImage : `${path_banner_img}/${parsedImage}`) : "https://via.placeholder.com/600x300" }}
+                style={{ width: bannerWidth, height: bannerHeight, borderRadius: 12, backgroundColor: '#e5e7eb' }}
                 contentFit="cover"
                 transition={200}
               />
