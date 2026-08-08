@@ -216,7 +216,7 @@ const ProductDetails = () => {
       />
       
       {/* Bottom Sheet Container */}
-      <View className="bg-white w-full rounded-t-[10px] h-[92%] overflow-hidden flex-col shadow-2xl">
+      <View style={{ flex: 11 }} className="bg-white w-full rounded-t-[10px] overflow-hidden flex-col shadow-2xl">
         
         {/* Drag handle */}
         <View className="w-full items-center py-3 bg-white z-30 border-b border-gray-50">
@@ -468,8 +468,7 @@ const ProductDetails = () => {
         />
 
         {/* Sticky Footer Action Bar */}
-        <View className="w-full bg-white border-t border-gray-200 py-3 px-4 flex-row items-center justify-between shadow-lg">
-          
+        <View className="w-full bg-white border-t border-gray-200 py-3 px-4 flex-row items-center justify-between shadow-lg" style={{ paddingBottom: Platform.OS === 'android' ? 35 : 21 }}>
           <TouchableOpacity 
             onPress={() => {
               const p_image = (product.image && product.image.length > 0) ? `${path_product_img}/${product.image[0]}` : "";

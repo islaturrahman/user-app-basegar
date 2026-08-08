@@ -11,7 +11,7 @@ import { FontAwesome5 } from "@expo/vector-icons";
 
 const { width } = Dimensions.get('window');
 
-const FloatingFreeDeliveryProgress = () => {
+const FloatingFreeDeliveryProgress = ({ isCart = false }) => {
   const { cart } = useContext(CartContext) || { cart: [] };
   const { config } = useContext(ConfigContext) || {};
   const { deliverCharge } = useContext(DeliveryContext) || { deliverCharge: 0 };
@@ -72,8 +72,8 @@ const FloatingFreeDeliveryProgress = () => {
 
   return (
     <View
-      className="absolute left-0 right-0 z-30 px-4 items-center w-full"
-      style={{ bottom: Platform.OS === 'android' ? 108 : 68 }}
+      className="absolute left-0 right-0 z-50 px-4 items-center w-full"
+      style={{ bottom: Platform.OS === 'android' ? (isCart ? 140 : 108) : (isCart ? 100 : 68) }}
       pointerEvents="box-none"
     >
       <TouchableOpacity 
@@ -120,7 +120,7 @@ const FloatingFreeDeliveryProgress = () => {
         </View>
       </TouchableOpacity>
       
-      {showConfetti && (
+      {isCart && showConfetti && (
         <ConfettiCannon
           count={150}
           origin={{ x: width / 2, y: 0 }}

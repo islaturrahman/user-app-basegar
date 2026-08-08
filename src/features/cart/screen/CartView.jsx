@@ -8,6 +8,7 @@ import CartListItem from "../widget/CartListItem";
 import FlashSale from "../widget/FlashSale";
 import BottomCartView from "../widget/BottomCartView";
 import ConfigProvider from "../../../provider/ConfigProvider";
+
 // import DeliveryProvider from "../../delivery/provider/DeliveryProvider";
 
 const CartView = () => {
@@ -34,6 +35,8 @@ const CartView = () => {
         <FlashSale />
       </ScrollView>
 
+
+      
       {/* Bottom bar ditempatkan di luar ScrollView agar selalu sticky di bawah */}
       <BottomCartView />
     </View>

@@ -2,16 +2,24 @@
   "expo": {
     "name": "Basegar",
     "slug": "basegar-app",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.app.basegar",
+      "icon": "./assets/icon.png",
+      "buildNumber": "3"
     },
     "android": {
       "softwareKeyboardLayoutMode": "resize",
       "package": "com.app.basegar",
-      "versionCode": 1
+      "versionCode": 3,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#ffffff"
+      }
     },
     "web": {
       "bundler": "metro"

@@ -55,7 +55,7 @@ export function BottomMenu() {
   }, []);
 
   // Hide BottomMenu on specific routes
-  const hiddenRoutes = ['/cart', '/checkout', '/o/:id', '/orders'];
+  const hiddenRoutes = ['/cart', '/checkout', '/o/:id', '/orders', '/p/:id'];
   if (
     currentRouteName &&
     (currentRouteName.startsWith('/address') || hiddenRoutes.includes(currentRouteName))

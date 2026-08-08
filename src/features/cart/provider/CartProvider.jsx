@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useMemo } from "react";
 import CartContext from "../../../context/CartContext";
 import { Cart } from "../../../models/OrderModel";
 import { useNavigation } from "@react-navigation/native";
@@ -36,9 +36,9 @@ const CartProvider = ({ children }) => {
     }
   });
 
-  const getCart = () => {
-    return cart || [];
-  };
+  const getCart = useCallback(() => {
+    return queryClient.getQueryData(["cart"]) || [];
+  }, [queryClient]);
 
   const scheduleStockValidation = () => {
     let status = true;
@@ -49,7 +49,7 @@ const CartProvider = ({ children }) => {
     };
   };
 
-  const addToCart = async (
+  const addToCart = useCallback(async (
     product_id,
     name,
     price,
@@ -60,6 +60,7 @@ const CartProvider = ({ children }) => {
     image,
     time_slot
   ) => {
+    const currentCart = queryClient.getQueryData(["cart"]) || [];
     try {
       const token = await AsyncStorage.getItem("authToken");
       if (!token) {
@@ -71,13 +72,13 @@ const CartProvider = ({ children }) => {
       return;
     }
 
-    const existingProductIndex = cart.findIndex(
+    const existingProductIndex = currentCart.findIndex(
       (item) => item.product_id === product_id
     );
 
     let updatedCart;
     if (existingProductIndex !== -1) {
-      updatedCart = [...cart];
+      updatedCart = [...currentCart];
       updatedCart[existingProductIndex] = {
         ...updatedCart[existingProductIndex],
         quantity: updatedCart[existingProductIndex].quantity + 1
@@ -103,40 +104,42 @@ const CartProvider = ({ children }) => {
 
       const data = cartItem.getCart();
       data.is_selected = true; // Default selected
-      updatedCart = [...cart, data];
+      updatedCart = [...currentCart, data];
     }
     
     updateCartMutation.mutate(updatedCart);
-  };
+  }, [navigation, queryClient, updateCartMutation]);
 
-  const addQuantity = (productId) => {
-    const updatedCart = cart.map((item) => {
+  const addQuantity = useCallback((productId) => {
+    const currentCart = queryClient.getQueryData(["cart"]) || [];
+    const updatedCart = currentCart.map((item) => {
       if (item.product_id === productId) {
         return { ...item, quantity: item.quantity + 1 };
       }
       return item;
     });
     updateCartMutation.mutate(updatedCart);
-  };
+  }, [queryClient, updateCartMutation]);
 
-  const minQuantity = (productId) => {
-    const targetItem = cart.find((item) => item.product_id === productId);
+  const minQuantity = useCallback((productId) => {
+    const currentCart = queryClient.getQueryData(["cart"]) || [];
+    const targetItem = currentCart.find((item) => item.product_id === productId);
     if (targetItem && targetItem.quantity <= 1) {
-      const updatedCart = cart.filter(
+      const updatedCart = currentCart.filter(
         (item) => item.product_id !== productId
       );
       updateCartMutation.mutate(updatedCart);
       return;
     }
 
-    const updatedCart = cart.map((item) => {
+    const updatedCart = currentCart.map((item) => {
       if (item.product_id === productId) {
         return { ...item, quantity: item.quantity - 1 };
       }
       return item;
     });
     updateCartMutation.mutate(updatedCart);
-  };
+  }, [queryClient, updateCartMutation]);
 
   const getTotalPrice = () => {
     if (cart.length === 0 || cart == null) {
@@ -183,12 +186,13 @@ const CartProvider = ({ children }) => {
     updateCartMutation.mutate(updatedCart);
   };
 
-  const clearCart = () => {
-    const unselectedItems = cart.filter(item => item.is_selected === false);
+  const clearCart = useCallback(() => {
+    const currentCart = queryClient.getQueryData(["cart"]) || [];
+    const unselectedItems = currentCart.filter(item => item.is_selected === false);
     updateCartMutation.mutate(unselectedItems);
-  };
+  }, [queryClient, updateCartMutation]);
 
-  const value = {
+  const value = useMemo(() => ({
     cart,
     loading,
     error,
@@ -202,7 +206,10 @@ const CartProvider = ({ children }) => {
     toggleSelectItem,
     toggleSelectAll,
     updateItemSelection,
-  };
+  }), [
+    cart, loading, error, getCart, getTotalPrice, addToCart, removeFromCart,
+    clearCart, addQuantity, minQuantity, toggleSelectItem, toggleSelectAll, updateItemSelection
+  ]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 };

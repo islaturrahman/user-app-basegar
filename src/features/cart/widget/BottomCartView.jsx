@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, Platform } from "react-native";
+import { View, Text, TouchableOpacity, Platform, Dimensions } from "react-native";
 import { FontAwesome5 } from "@expo/vector-icons";
 import CartContext from "../../../context/CartContext";
 import { ConfigContext } from "../../../provider/ConfigProvider";
@@ -7,6 +7,9 @@ import { useNavigation } from "@react-navigation/native";
 import { toRupiah } from "../../../components/Helper";
 import { DeliveryContext } from "../../delivery/provider/DeliveryProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import ConfettiCannon from "react-native-confetti-cannon";
+
+const { width } = Dimensions.get('window');
 
 const BottomCartView = () => {
   const getCart = useContext(CartContext);
@@ -26,6 +29,7 @@ const BottomCartView = () => {
   const remainingAmount = freeDeliveryThreshold - cartTotal;
 
   const [hasCelebrated, setHasCelebrated] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
     const checkCelebratedStatus = async () => {
@@ -38,7 +42,7 @@ const BottomCartView = () => {
   useEffect(() => {
     if (freeDeliveryThreshold > 0) {
       if (cartTotal >= freeDeliveryThreshold && !hasCelebrated) {
-        // Confetti dihapus sementara karena belum ada library native-nya
+        setShowConfetti(true);
         setHasCelebrated(true);
         AsyncStorage.setItem("hasCelebratedFreeShipping", "true");
       } else if (cartTotal < freeDeliveryThreshold && hasCelebrated) {
@@ -114,6 +118,19 @@ const BottomCartView = () => {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {showConfetti && (
+        <View style={{ position: 'absolute', top: -Dimensions.get('window').height, left: 0, right: 0, bottom: 0 }} pointerEvents="none">
+          <ConfettiCannon
+            count={150}
+            origin={{ x: width / 2, y: 0 }}
+            autoStart={true}
+            fadeOut={true}
+            fallSpeed={2500}
+            onAnimationEnd={() => setShowConfetti(false)}
+          />
+        </View>
+      )}
     </View>
   );
 };
