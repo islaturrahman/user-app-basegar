@@ -119,7 +119,12 @@ export default function ChatProvider({ children }) {
       if (messagesArray) {
         // Only compare core fields safely
         const validMessages = messagesArray.filter(m => m != null);
-        const simplifiedMsg = validMessages.map(m => ({ id: m.id, msg: m.message, reply: m.reply }));
+        const simplifiedMsg = validMessages.map(m => ({ 
+           id: m.id, 
+           msg: m.message, 
+           reply: m.reply,
+           is_reply: m.is_reply
+        }));
         const newJson = JSON.stringify(simplifiedMsg);
         
         if (isInitial || newJson !== lastMessagesJsonRef.current) {
@@ -129,16 +134,13 @@ export default function ChatProvider({ children }) {
             try {
               const prevMessages = JSON.parse(lastMessagesJsonRef.current);
               
-              const getAdminText = (msgs) => msgs
-                .filter(m => m.is_reply || Boolean(m.reply))
-                .map(m => m.reply || "")
-                .join("||");
-              const prevAdminText = getAdminText(prevMessages);
-              const newAdminText = getAdminText(messagesArray);
+              const isAdminMsg = (m) => m.is_reply == 1 || m.is_reply === true || (m.reply && String(m.reply).trim().length > 0);
+              const prevAdminCount = prevMessages.filter(isAdminMsg).length;
+              const newAdminCount = messagesArray.filter(isAdminMsg).length;
               
-              if (prevAdminText !== newAdminText) {
+              if (newAdminCount > prevAdminCount) {
                 playSound();
-                setGlobalUnreadCount(prev => prev + 1);
+                setGlobalUnreadCount(prev => prev + (newAdminCount - prevAdminCount));
               }
             } catch (e) {
               console.error("Error parsing prev messages for sound", e);

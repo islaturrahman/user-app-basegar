@@ -5,7 +5,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import AppBar from "../../../components/AppBar";
 import CartProvider from "../provider/CartProvider";
 import CartListItem from "../widget/CartListItem";
-import FlashSale from "../widget/FlashSale";
 import BottomCartView from "../widget/BottomCartView";
 import ConfigProvider from "../../../provider/ConfigProvider";
 
@@ -32,7 +31,6 @@ const CartView = () => {
       
       <ScrollView contentContainerStyle={{ paddingBottom: Platform.OS === 'android' ? 180 : 140 }} showsVerticalScrollIndicator={false}>
         <CartListItem />
-        <FlashSale />
       </ScrollView>
 
 

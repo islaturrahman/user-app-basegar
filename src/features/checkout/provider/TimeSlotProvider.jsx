@@ -86,16 +86,29 @@ const TimeSlotProvider = ({ children }) => {
         };
 
         if (cartData.length > 0) {
+          const now = new Date();
+          const currentHours = now.getHours().toString().padStart(2, "0");
+          const currentMinutes = now.getMinutes().toString().padStart(2, "0");
+          const currentTime = `${currentHours}:${currentMinutes}:00`;
+
           cartData.forEach((item) => {
             if (item.is_selected !== false) {
                const slots = parseTimeSlots(item.time_slot);
+               let earliestProductStart = null;
                slots.forEach(slot => {
-                  if (slot && slot.start_time) {
-                     if (!maxFreshStartTime || slot.start_time > maxFreshStartTime) {
-                        maxFreshStartTime = slot.start_time;
+                  if (slot && slot.end_time && currentTime <= slot.end_time) {
+                     if (slot.start_time) {
+                        if (!earliestProductStart || slot.start_time < earliestProductStart) {
+                           earliestProductStart = slot.start_time;
+                        }
                      }
                   }
                });
+               if (earliestProductStart) {
+                  if (!maxFreshStartTime || earliestProductStart > maxFreshStartTime) {
+                     maxFreshStartTime = earliestProductStart;
+                  }
+               }
             }
           });
         }
@@ -175,18 +188,25 @@ const TimeSlotProvider = ({ children }) => {
            const slots = parseTimeSlots(item.time_slot);
            if (slots.length > 0) {
              let allExpired = true;
+             let earliestProductStart = null;
+
              slots.forEach(slot => {
                if (slot && slot.end_time && currentTime <= slot.end_time) {
                  allExpired = false;
-               }
-               if (slot && slot.start_time) {
-                  if (!maxFreshStartTime || slot.start_time > maxFreshStartTime) {
-                     maxFreshStartTime = slot.start_time;
-                  }
+                 if (slot.start_time) {
+                    if (!earliestProductStart || slot.start_time < earliestProductStart) {
+                       earliestProductStart = slot.start_time;
+                    }
+                 }
                }
              });
+
              if (allExpired) {
                hasExpiredFreshProduct = true;
+             } else if (earliestProductStart) {
+               if (!maxFreshStartTime || earliestProductStart > maxFreshStartTime) {
+                  maxFreshStartTime = earliestProductStart;
+               }
              }
            }
         }
