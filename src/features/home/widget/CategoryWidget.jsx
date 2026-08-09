@@ -31,30 +31,30 @@ export default function CategoryWidget() {
     return `${path_category_img}/${img}`;
   };
 
-  // Fallback static categories list if DB is empty
-  const fallbackCategories = [
-    { id: 10, name: "Sembako", image: "https://images.unsplash.com/photo-1563636619-e9143da7973b?auto=format&fit=crop&q=80&w=150" },
-    { id: 12, name: "Buah", image: "https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?auto=format&fit=crop&q=80&w=150" },
-    { id: 1, name: "Sayuran", image: "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&q=80&w=150" },
-    { id: 8, name: "Daging", image: "https://images.unsplash.com/photo-1603048588665-791ca8aea617?auto=format&fit=crop&q=80&w=150" },
-    { id: 3, name: "Seafood", image: "https://images.unsplash.com/photo-1534604973900-c43ab4c2e0ab?auto=format&fit=crop&q=80&w=150" },
-  ];
-
-  const categoriesList = backendCategories.length > 0
-    ? backendCategories.map(cat => ({
-        id: cat.id,
-        name: cat.name,
-        image: getCategoryImageUrl(cat.image)
-      }))
-    : fallbackCategories;
+  const categoriesList = backendCategories.map(cat => ({
+    id: cat.id,
+    name: cat.name,
+    image: getCategoryImageUrl(cat.image)
+  }));
 
   const handleClickCategory = (cat) => {
     if (cat.id) {
       navigation.navigate("/categories/:category_id", { category_id: cat.id });
-    } else {
-      navigation.navigate("/categories/:category_id", { category_id: 10 });
     }
   };
+
+  if (isLoading) {
+    return (
+      <View className="w-full bg-white flex-row justify-between pt-2 pb-4">
+        {[1, 2, 3, 4, 5].map((key) => (
+          <View key={key} className="flex-col items-center">
+            <View className="w-14 h-14 rounded-full bg-gray-200 mb-2" />
+            <View className="w-12 h-2.5 bg-gray-200 rounded-full" />
+          </View>
+        ))}
+      </View>
+    );
+  }
 
   // Group items into pairs (rows of 2) for the vertical stack within the horizontal scroll
   const chunkedCategories = [];

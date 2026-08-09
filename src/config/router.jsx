@@ -7,6 +7,7 @@ import Home from '../features/home/screen/Home';
 
 import CartView from "../features/cart/screen/CartView";
 import ProductDetails from "../features/product/screen/ProductDetails";
+import FlashSaleView from "../features/product/screen/FlashSaleView";
 import CategoryView from "../features/category/screen/CategoryView";
 import Login from "../features/auth/screen/Login";
 import Account from "../features/user/screen/Account";
@@ -59,10 +60,9 @@ export default function Router() {
     };
   }, []);
 
-  if (isLoading) {
-    // Tampilkan loader selagi mengecek AsyncStorage
-    return <Loader type="full" isLoading={true} />;
-  }
+  // We no longer block the entire UI with a Loader while checking Auth.
+  // The Splash Screen (if configured natively) or the Home screen will take over.
+  // React Navigation handles the state update gracefully.
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
@@ -92,6 +92,7 @@ export default function Router() {
       {/* Penemuan */}
       <Stack.Screen name="/voucher" component={VoucherView} />
       <Stack.Screen name="/categories/:category_id" component={CategoryView} />
+      <Stack.Screen name="/flash-sale/:id" component={FlashSaleView} />
       <Stack.Screen name="/games" component={PlaceholderScreen} />
       <Stack.Screen name="/games/watermelon-game" component={PlaceholderScreen} />
 

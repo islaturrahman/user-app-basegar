@@ -41,6 +41,7 @@ const linking = {
       '/o/:id/success': 'o/:id/success',
       '/voucher': 'voucher',
       '/categories/:category_id': 'categories/:category_id',
+      '/flash-sale/:id': 'flash-sale/:id',
     }
   }
 };
@@ -55,7 +56,14 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
-        <NavigationContainer linking={linking}>
+        <NavigationContainer 
+          linking={linking}
+          documentTitle={{
+            formatter: (options, route) => {
+              return options?.title || 'Basegar - Belanja Segar';
+            }
+          }}
+        >
           <GlobalProvider>
             <View style={styles.webContainer}>
               <View style={styles.appContainer}>

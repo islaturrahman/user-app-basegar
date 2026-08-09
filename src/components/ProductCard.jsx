@@ -9,7 +9,7 @@ const toRupiah = (price) => `Rp ${(Number(price) || 0).toLocaleString('id-ID')}`
 const ProductCard = ({ 
   product, 
   cartQuantity, 
-  layoutType = 'home', // 'home' | 'category'
+  layoutType = 'home', // 'home' | 'category' | 'horizontal'
   onPress, 
   onAdd, 
   onIncrease, 
@@ -17,15 +17,18 @@ const ProductCard = ({
 }) => {
   let p = { ...product };
   
+  let timeSlots = [];
   if (typeof p.time_slot === 'string') {
     try {
-      p.time_slot = JSON.parse(p.time_slot);
+      const parsed = JSON.parse(p.time_slot);
+      timeSlots = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : []);
     } catch (e) {
-      p.time_slot = null;
+      timeSlots = [];
     }
-  }
-  if (Array.isArray(p.time_slot)) {
-    p.time_slot = p.time_slot[0];
+  } else if (Array.isArray(p.time_slot)) {
+    timeSlots = p.time_slot;
+  } else if (p.time_slot) {
+    timeSlots = [p.time_slot];
   }
 
   let imageStr = p.image;
@@ -39,18 +42,53 @@ const ProductCard = ({
     ? (imageStr.startsWith("http") ? imageStr : `${path_product_img}/${imageStr}`) 
     : "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=150";
 
-  let isSlotExpired = false;
-  if (p.time_slot && p.time_slot.end_time) {
+  let allSlotsExpired = true;
+  let hasFresh = timeSlots.length > 0;
+  
+  if (hasFresh) {
     const now = new Date();
     const currentHours = now.getHours().toString().padStart(2, "0");
     const currentMinutes = now.getMinutes().toString().padStart(2, "0");
     const currentTime = `${currentHours}:${currentMinutes}:00`;
-    isSlotExpired = currentTime > p.time_slot.end_time;
+    
+    timeSlots.forEach(slot => {
+        if (slot && slot.end_time) {
+            const isExpired = currentTime > slot.end_time;
+            if (!isExpired) {
+                allSlotsExpired = false;
+            }
+        }
+    });
+  } else {
+    allSlotsExpired = false;
+  }
+
+  let dayLabel = "Hari ini";
+  if (hasFresh && allSlotsExpired) {
+      dayLabel = "Besok";
+  }
+
+  let displaySlot = null;
+  if (hasFresh) {
+    const now = new Date();
+    const currentHours = now.getHours().toString().padStart(2, "0");
+    const currentMinutes = now.getMinutes().toString().padStart(2, "0");
+    const currentTime = `${currentHours}:${currentMinutes}:00`;
+
+    const sortedSlots = [...timeSlots].sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""));
+    if (allSlotsExpired) {
+        displaySlot = sortedSlots[0];
+    } else {
+        displaySlot = sortedSlots.find(slot => slot.end_time && slot.end_time >= currentTime) || sortedSlots[0];
+    }
   }
 
   const isHome = layoutType === 'home';
+  const isHorizontal = layoutType === 'horizontal';
   const containerClass = isHome 
     ? "flex-1 bg-white rounded-xl border border-gray-100 p-2 m-1 relative"
+    : isHorizontal
+    ? "w-[115px] bg-white rounded-xl border border-gray-100 p-2 mx-1 my-1 relative"
     : "flex-1 bg-white rounded-xl border border-gray-100 p-2 m-1.5 relative";
 
   return (
@@ -68,11 +106,41 @@ const ProductCard = ({
         <Text className="text-[11px] font-extrabold text-gray-800 mb-1" numberOfLines={2}>
           {p.name}
         </Text>
-        {isSlotExpired && (
-          <View className="bg-gray-200 self-start px-2 py-0.5 rounded-[5px] mb-1">
-            <Text className="text-[9px] font-bold text-gray-700">Tersedia besok</Text>
+        <View className="flex-row items-center flex-wrap mb-1">
+          <View className="bg-gray-100 px-1.5 py-0.5 rounded-[4px] mr-1 mb-1">
+            <Text className="text-[9px] font-bold text-gray-500">{dayLabel}</Text>
           </View>
-        )}
+          {displaySlot && displaySlot.start_time && (() => {
+            let slotType = null;
+            let slotBgClass = "";
+            let slotTextClass = "";
+            
+            const startHour = parseInt(displaySlot.start_time.split(':')[0], 10);
+            if (startHour < 12) {
+              slotType = "Pagi";
+              slotBgClass = "bg-blue-100";
+              slotTextClass = "text-blue-700";
+            } else if (startHour < 15) {
+              slotType = "Siang";
+              slotBgClass = "bg-yellow-100";
+              slotTextClass = "text-yellow-700";
+            } else if (startHour < 18) {
+              slotType = "Sore";
+              slotBgClass = "bg-red-100";
+              slotTextClass = "text-red-700";
+            } else {
+              slotType = "Malam";
+              slotBgClass = "bg-purple-100";
+              slotTextClass = "text-purple-700";
+            }
+            
+            return (
+              <View className={`px-1.5 py-0.5 rounded-[4px] mb-1 mr-1 ${slotBgClass}`}>
+                <Text className={`text-[9px] font-bold ${slotTextClass}`}>{slotType}</Text>
+              </View>
+            );
+          })()}
+        </View>
         
         <View className="flex-row flex-wrap">
           {p.choice_options?.map((item, idx) => (

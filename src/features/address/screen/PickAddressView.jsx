@@ -152,6 +152,8 @@ const PickAddressView = () => {
     }
   };
 
+  const lastFetchedCoords = useRef({ lat: 0, lng: 0 });
+
   const handleMessage = (event) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
@@ -164,13 +166,20 @@ const PickAddressView = () => {
           return; // Ignore programmatic moves to prevent double-fetching
         }
 
+        // Prevent micro-movements (like layout shifts) from triggering infinite loops
+        const dist = getDistance(lastFetchedCoords.current.lat, lastFetchedCoords.current.lng, data.lat, data.lng);
+        if (dist < 0.005) { // ignore if moved less than 5 meters
+          return;
+        }
+
         if (mapDebounceTimeout.current) {
           clearTimeout(mapDebounceTimeout.current);
         }
         setIsFetchingAddress(true);
         mapDebounceTimeout.current = setTimeout(() => {
+          lastFetchedCoords.current = { lat: data.lat, lng: data.lng };
           fetchAddressFromCoords(data.lat, data.lng);
-        }, 2000);
+        }, 1500);
       }
     } catch (e) {}
   };
@@ -386,7 +395,7 @@ const PickAddressView = () => {
 
       {/* Bottom Action Area */}
       <View
-        className="bg-white rounded-t-3xl p-5 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] border-t border-gray-100 z-50 min-h-[170px] justify-between"
+        className="bg-white rounded-t-3xl p-5 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] border-t border-gray-100 z-50 h-[210px] justify-between"
         style={{ paddingBottom: Platform.OS === 'android' ? 40 : 20 }}
       >
         <View className="flex-1 justify-center">

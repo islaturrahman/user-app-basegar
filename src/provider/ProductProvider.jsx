@@ -17,7 +17,7 @@ const ProductProvider = ({ children }) => {
 
   const fetchProducts = useCallback(async (params) => {
     let endpoint = params
-      ? `${all_products}?page=${params.page}&limit=${params.limit}`
+      ? `${all_products}?offset=${params.page}&limit=${params.limit}`
       : all_products;
 
     // Append deliveryDate to endpoint

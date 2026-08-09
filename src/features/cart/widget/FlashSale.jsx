@@ -98,6 +98,37 @@ const FlashSale = () => {
 
   if (loading) return null;
 
+  const parseTimeSlots = (time_slot) => {
+    let slots = [];
+    if (typeof time_slot === 'string') {
+      try {
+        const parsed = JSON.parse(time_slot);
+        slots = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : []);
+      } catch (e) {
+        slots = [];
+      }
+    } else if (Array.isArray(time_slot)) {
+      slots = time_slot;
+    } else if (time_slot) {
+      slots = [time_slot];
+    }
+    return slots;
+  };
+
+  const isProductExpired = (item, currentTime) => {
+    const slots = parseTimeSlots(item.time_slot);
+    if (slots.length === 0) return false;
+    let allExpired = true;
+    slots.forEach(slot => {
+        if (slot && slot.end_time) {
+            if (currentTime <= slot.end_time) {
+                allExpired = false;
+            }
+        }
+    });
+    return allExpired;
+  };
+
   const handleAddProduct = async (item, discountedPrice) => {
     const token = await AsyncStorage.getItem("authToken");
     if (!token) {
@@ -105,13 +136,13 @@ const FlashSale = () => {
       return;
     }
 
-    if (deliveryDate === "today" && item.time_slot && item.time_slot.end_time) {
+    if (deliveryDate === "today") {
       const now = new Date();
       const currentHours = now.getHours().toString().padStart(2, "0");
       const currentMinutes = now.getMinutes().toString().padStart(2, "0");
       const currentTime = `${currentHours}:${currentMinutes}:00`;
 
-      if (currentTime > item.time_slot.end_time) {
+      if (isProductExpired(item, currentTime)) {
         setPendingProduct({ item, discountedPrice });
         setShowModal(true);
         return;

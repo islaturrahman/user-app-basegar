@@ -22,8 +22,39 @@ const CartListItem = () => {
   const currentMinutes = now.getMinutes().toString().padStart(2, "0");
   const currentTime = `${currentHours}:${currentMinutes}:00`;
 
+  const parseTimeSlots = (time_slot) => {
+    let slots = [];
+    if (typeof time_slot === 'string') {
+      try {
+        const parsed = JSON.parse(time_slot);
+        slots = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : []);
+      } catch (e) {
+        slots = [];
+      }
+    } else if (Array.isArray(time_slot)) {
+      slots = time_slot;
+    } else if (time_slot) {
+      slots = [time_slot];
+    }
+    return slots;
+  };
+
+  const isProductExpired = (item, currentTime) => {
+    const slots = parseTimeSlots(item.time_slot);
+    if (slots.length === 0) return false;
+    let allExpired = true;
+    slots.forEach(slot => {
+        if (slot && slot.end_time) {
+            if (currentTime <= slot.end_time) {
+                allExpired = false;
+            }
+        }
+    });
+    return allExpired;
+  };
+
   const expiredFreshProducts = cart?.filter(item => {
-    return item.time_slot && item.time_slot.end_time && currentTime > item.time_slot.end_time;
+    return isProductExpired(item, currentTime);
   }) || [];
   const expiredFreshCount = expiredFreshProducts.length;
 
@@ -84,7 +115,7 @@ const CartListItem = () => {
   );
 
   const validCartItems = cart?.filter(item => {
-    const isExpiredFresh = !!(item.time_slot && item.time_slot.end_time && currentTime > item.time_slot.end_time);
+    const isExpiredFresh = isProductExpired(item, currentTime);
     return !(deliveryDate === "today" && isExpiredFresh);
   }) || [];
   
@@ -144,13 +175,20 @@ const CartListItem = () => {
         
         {cart && cart.length > 0 ? (
           cart.map((item, index) => {
-            let isSlotExpired = false;
-            if (item.time_slot && item.time_slot.end_time) {
-              isSlotExpired = currentTime > item.time_slot.end_time;
-            }
-
-            const isExpiredFresh = !!(item.time_slot && item.time_slot.end_time && currentTime > item.time_slot.end_time);
+            const slots = parseTimeSlots(item.time_slot);
+            const isExpiredFresh = isProductExpired(item, currentTime);
             const isCheckboxDisabled = deliveryDate === "today" && isExpiredFresh;
+            let dayLabel = isExpiredFresh && slots.length > 0 ? "Besok" : "Hari ini";
+            
+            let displaySlot = null;
+            if (slots.length > 0) {
+                const sortedSlots = [...slots].sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""));
+                if (isExpiredFresh) {
+                    displaySlot = sortedSlots[0];
+                } else {
+                    displaySlot = sortedSlots.find(slot => slot.end_time && slot.end_time >= currentTime) || sortedSlots[0];
+                }
+            }
 
             return (
               <View
@@ -186,17 +224,37 @@ const CartListItem = () => {
                 </Text>
 
                 <View className="flex-row flex-wrap gap-1 mt-1">
-                  {item.time_slot && item.time_slot.start_time && (
+                  {slots.length > 0 && (
                     <View className="bg-green-600 py-0.5 px-1.5 rounded flex-row items-center self-start">
                       <Text className="text-[10px] text-yellow-300 font-bold">Fresh</Text>
                     </View>
                   )}
                 </View>
-                {isSlotExpired && (
-                  <View className="bg-gray-200 self-start px-2 py-0.5 rounded-[5px] mt-1">
-                    <Text className="text-[9px] font-bold text-gray-700">Tersedia besok</Text>
+                <View className="flex-row items-center flex-wrap mt-1">
+                  <View className="bg-gray-100 px-1.5 py-0.5 rounded-[4px] mr-1 mb-1">
+                    <Text className="text-[9px] font-bold text-gray-500">{dayLabel}</Text>
                   </View>
-                )}
+                  {displaySlot && displaySlot.start_time && (() => {
+                    let slotType = null;
+                    let slotBgClass = "";
+                    let slotTextClass = "";
+                    const startHour = parseInt(displaySlot.start_time.split(':')[0], 10);
+                    if (startHour < 12) {
+                      slotType = "Pagi"; slotBgClass = "bg-blue-100"; slotTextClass = "text-blue-700";
+                    } else if (startHour < 15) {
+                      slotType = "Siang"; slotBgClass = "bg-yellow-100"; slotTextClass = "text-yellow-700";
+                    } else if (startHour < 18) {
+                      slotType = "Sore"; slotBgClass = "bg-red-100"; slotTextClass = "text-red-700";
+                    } else {
+                      slotType = "Malam"; slotBgClass = "bg-purple-100"; slotTextClass = "text-purple-700";
+                    }
+                    return (
+                      <View className={`px-1.5 py-0.5 rounded-[4px] mb-1 mr-1 ${slotBgClass}`}>
+                        <Text className={`text-[9px] font-bold ${slotTextClass}`}>{slotType}</Text>
+                      </View>
+                    );
+                  })()}
+                </View>
               </View>
               
               <View className="flex-row items-center ml-auto bg-gray-50 rounded border border-gray-300 overflow-hidden w-20 h-8">

@@ -1,5 +1,5 @@
-import React, { useContext, useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Platform } from "react-native";
+import React, { useContext, useEffect, useState, useCallback } from "react";
+import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Platform, RefreshControl } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { FontAwesome5 } from "@expo/vector-icons";
 import AppBar from "../../../components/AppBar";
@@ -9,6 +9,7 @@ const AddressView = () => {
   const navigation = useNavigation();
   const { allAddress, setAddress, getSelectAddress, deleteCustomerAddress, loading, getAddress } = useContext(AddressContext);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     const fetchSelection = async () => {
@@ -20,21 +21,35 @@ const AddressView = () => {
     fetchSelection();
   }, [allAddress]);
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      if (getAddress) await getAddress();
+    } catch (e) {}
+    setRefreshing(false);
+  }, [getAddress]);
+
   const handleDelete = (id) => {
-    Alert.alert(
-      "Hapus Alamat",
-      "Apakah Anda yakin ingin menghapus alamat ini?",
-      [
-        { text: "Batal", style: "cancel" },
-        { 
-          text: "Hapus", 
-          style: "destructive", 
-          onPress: async () => {
-            await deleteCustomerAddress(id);
+    if (Platform.OS === 'web') {
+      if (window.confirm("Apakah Anda yakin ingin menghapus alamat ini?")) {
+        deleteCustomerAddress(id);
+      }
+    } else {
+      Alert.alert(
+        "Hapus Alamat",
+        "Apakah Anda yakin ingin menghapus alamat ini?",
+        [
+          { text: "Batal", style: "cancel" },
+          { 
+            text: "Hapus", 
+            style: "destructive", 
+            onPress: async () => {
+              await deleteCustomerAddress(id);
+            }
           }
-        }
-      ]
-    );
+        ]
+      );
+    }
   };
 
   const handleSelect = async (addr) => {
@@ -56,8 +71,12 @@ const AddressView = () => {
     <View className="flex-1 bg-gray-50">
       <AppBar title="Alamat Pengiriman" />
 
-      <ScrollView className="flex-1 px-4 pt-4" showsVerticalScrollIndicator={false}>
-        {loading ? (
+      <ScrollView 
+        className="flex-1 px-4 pt-4" 
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#15803d"]} tintColor="#15803d" />}
+      >
+        {loading && !refreshing ? (
           <View className="items-center py-10">
             <ActivityIndicator size="large" color="#15803d" />
             <Text className="text-gray-500 mt-2">Memuat alamat...</Text>
@@ -86,14 +105,20 @@ const AddressView = () => {
                   </View>
                   <View className="flex-row items-center ml-2 space-x-3">
                     <TouchableOpacity
-                      onPress={() => navigation.navigate("/address/edit/:id", { id: addr.id })}
-                      className="p-2"
+                      onPress={(e) => { 
+                        e.stopPropagation(); 
+                        navigation.navigate("/address/edit/:id", { id: addr.id });
+                      }}
+                      className="p-2 z-10"
                     >
                       <FontAwesome5 name="pen" size={14} color="#15803d" />
                     </TouchableOpacity>
                     <TouchableOpacity
-                      onPress={() => handleDelete(addr.id)}
-                      className="p-2"
+                      onPress={(e) => { 
+                        e.stopPropagation(); 
+                        handleDelete(addr.id); 
+                      }}
+                      className="p-2 z-10"
                     >
                       <FontAwesome5 name="trash" size={14} color="#ef4444" />
                     </TouchableOpacity>

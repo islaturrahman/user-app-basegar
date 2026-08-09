@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useCallback } from "react";
+import React, { useState, useEffect, useContext, useCallback, useRef } from "react";
 import { View, Text, TouchableOpacity, ScrollView, Dimensions, Modal, Image as RNImage, RefreshControl, Platform } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -124,6 +124,8 @@ export default function CategoryView() {
   const { deliveryDate, setDeliveryDate } = useContext(ProductsContext) || {};
   const { timeslot } = useContext(TimeSlotContext) || {};
 
+  const flashListRef = useRef(null);
+
   const [active, setActive] = useState(false); // false = "Semua"
   const [isTopSheetOpen, setIsTopSheetOpen] = useState(false);
   const [masterTimeSlots, setMasterTimeSlots] = useState([]);
@@ -202,7 +204,7 @@ export default function CategoryView() {
         ? `${category_products_all}/${targetFetchId}/all?delivery_date=${deliveryDate}`
         : `${category_products_all}/${targetFetchId}/all`;
       const sep = endpoint.includes("?") ? "&" : "?";
-      endpoint += `${sep}page=${pageParam}&limit=10`;
+      endpoint += `${sep}offset=${pageParam}&limit=10`;
       
       const json = await get(endpoint);
       if (Array.isArray(json)) return json;
@@ -229,6 +231,7 @@ export default function CategoryView() {
 
   const handleClickCategoryChild = (id, index) => {
     setActive(index);
+    flashListRef.current?.scrollToOffset({ offset: 0, animated: true });
   };
 
   const getFilteredProducts = () => {
@@ -416,6 +419,7 @@ export default function CategoryView() {
           <TouchableOpacity
             onPress={() => {
               setActive(false);
+              flashListRef.current?.scrollToOffset({ offset: 0, animated: true });
             }}
             className={`w-full py-3 px-2 flex-row items-center border-l-4 ${active === false ? "bg-white border-green-700" : "border-transparent"}`}
           >
@@ -447,12 +451,14 @@ export default function CategoryView() {
         {/* Right Panel */}
         <View className="w-[76%] bg-white p-3 content-container">
           <FlashList
+            ref={flashListRef}
             key={'category-products'}
             data={loadingProducts ? [] : filteredProducts}
             keyExtractor={(item, idx) => (item.id || idx).toString()}
             numColumns={2}
             estimatedItemSize={250}
             showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: Platform.OS === 'android' ? 120 : 100 }}
             refreshControl={
               <RefreshControl
                 refreshing={isFetchingProducts && !loadingProducts && !isFetchingNextProducts}
@@ -474,8 +480,6 @@ export default function CategoryView() {
                     {active === false ? "Semua" : displaySubcategories[active]?.name}
                   </Text>
                 </View>
-                <View className="flex-1 bg-white relative">
-                </View>
               </>
             }
             ListEmptyComponent={
@@ -492,12 +496,23 @@ export default function CategoryView() {
             }
             ListFooterComponent={
               isFetchingNextProducts ? (
-                <View className="py-4 items-center justify-center" style={{ marginBottom: Platform.OS === 'android' ? 200 : 160 }}>
-                  <Text className="text-gray-500 text-xs font-bold">Memuat...</Text>
+                <View className="w-full flex-row flex-wrap justify-between mt-2 px-1">
+                  <View className="w-[48%] h-48 bg-gray-100 rounded-2xl mb-3 overflow-hidden">
+                    <View className="w-full h-[60%] bg-gray-200" />
+                    <View className="p-2">
+                      <View className="w-3/4 h-3 bg-gray-200 rounded mb-2" />
+                      <View className="w-1/2 h-3 bg-gray-200 rounded" />
+                    </View>
+                  </View>
+                  <View className="w-[48%] h-48 bg-gray-100 rounded-2xl mb-3 overflow-hidden">
+                    <View className="w-full h-[60%] bg-gray-200" />
+                    <View className="p-2">
+                      <View className="w-3/4 h-3 bg-gray-200 rounded mb-2" />
+                      <View className="w-1/2 h-3 bg-gray-200 rounded" />
+                    </View>
+                  </View>
                 </View>
-              ) : (
-                <View style={{ height: Platform.OS === 'android' ? 200 : 160 }} />
-              )
+              ) : null
             }
             renderItem={renderProduct}
           />

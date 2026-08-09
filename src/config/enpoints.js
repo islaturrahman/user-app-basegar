@@ -19,6 +19,7 @@ export const category_childs = "/api/v1/categories/childes";
 export const category_products_all = "/api/v1/categories/products";
 
 // config
+export const app_init = "/api/v1/app/init";
 export const config_url = "/api/v1/config";
 export const delivery_fee = "/api/v1/config/delivery-fee";
 
@@ -68,3 +69,4 @@ export const path_delivery_man_img = `${base_url}/storage/delivery-man`;
 export const path_category_img = `${base_url}/storage/category`;
 export const path_category_banner_img = `${base_url}/storage/category/banner`;
 export const path_banner_img = `${base_url}/storage/banner`;
+export const path_offer_img = `${base_url}/storage/offer`;

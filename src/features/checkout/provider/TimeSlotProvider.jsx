@@ -67,12 +67,35 @@ const TimeSlotProvider = ({ children }) => {
         const cartStr = await AsyncStorage.getItem("cart");
         const cartData = cartStr ? JSON.parse(cartStr) : [];
         let maxFreshStartTime = null;
+
+        const parseTimeSlots = (time_slot) => {
+          let slots = [];
+          if (typeof time_slot === 'string') {
+            try {
+              const parsed = JSON.parse(time_slot);
+              slots = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : []);
+            } catch (e) {
+              slots = [];
+            }
+          } else if (Array.isArray(time_slot)) {
+            slots = time_slot;
+          } else if (time_slot) {
+            slots = [time_slot];
+          }
+          return slots;
+        };
+
         if (cartData.length > 0) {
           cartData.forEach((item) => {
-            if (item.is_selected !== false && item.time_slot && item.time_slot.start_time) {
-               if (!maxFreshStartTime || item.time_slot.start_time > maxFreshStartTime) {
-                  maxFreshStartTime = item.time_slot.start_time;
-               }
+            if (item.is_selected !== false) {
+               const slots = parseTimeSlots(item.time_slot);
+               slots.forEach(slot => {
+                  if (slot && slot.start_time) {
+                     if (!maxFreshStartTime || slot.start_time > maxFreshStartTime) {
+                        maxFreshStartTime = slot.start_time;
+                     }
+                  }
+               });
             }
           });
         }
@@ -124,6 +147,23 @@ const TimeSlotProvider = ({ children }) => {
     let hasExpiredFreshProduct = false;
     let maxFreshStartTime = null;
     
+    const parseTimeSlots = (time_slot) => {
+      let slots = [];
+      if (typeof time_slot === 'string') {
+        try {
+          const parsed = JSON.parse(time_slot);
+          slots = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : []);
+        } catch (e) {
+          slots = [];
+        }
+      } else if (Array.isArray(time_slot)) {
+        slots = time_slot;
+      } else if (time_slot) {
+        slots = [time_slot];
+      }
+      return slots;
+    };
+
     if (cartData.length > 0) {
       const now = new Date();
       const currentHours = now.getHours().toString().padStart(2, "0");
@@ -131,14 +171,23 @@ const TimeSlotProvider = ({ children }) => {
       const currentTime = `${currentHours}:${currentMinutes}:00`;
 
       cartData.forEach((item) => {
-        if (item.is_selected !== false && item.time_slot && item.time_slot.end_time) {
-           if (currentTime > item.time_slot.end_time) {
-              hasExpiredFreshProduct = true;
-           }
-           if (item.time_slot.start_time) {
-              if (!maxFreshStartTime || item.time_slot.start_time > maxFreshStartTime) {
-                 maxFreshStartTime = item.time_slot.start_time;
-              }
+        if (item.is_selected !== false) {
+           const slots = parseTimeSlots(item.time_slot);
+           if (slots.length > 0) {
+             let allExpired = true;
+             slots.forEach(slot => {
+               if (slot && slot.end_time && currentTime <= slot.end_time) {
+                 allExpired = false;
+               }
+               if (slot && slot.start_time) {
+                  if (!maxFreshStartTime || slot.start_time > maxFreshStartTime) {
+                     maxFreshStartTime = slot.start_time;
+                  }
+               }
+             });
+             if (allExpired) {
+               hasExpiredFreshProduct = true;
+             }
            }
         }
       });

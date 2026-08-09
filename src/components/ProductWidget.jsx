@@ -33,6 +33,37 @@ const ProductWidget = ({ products, type = "grid" }) => {
     }, 3000);
   };
 
+  const parseTimeSlots = (time_slot) => {
+    let slots = [];
+    if (typeof time_slot === 'string') {
+      try {
+        const parsed = JSON.parse(time_slot);
+        slots = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : []);
+      } catch (e) {
+        slots = [];
+      }
+    } else if (Array.isArray(time_slot)) {
+      slots = time_slot;
+    } else if (time_slot) {
+      slots = [time_slot];
+    }
+    return slots;
+  };
+
+  const isProductExpired = (product, currentTime) => {
+    const slots = parseTimeSlots(product.time_slot);
+    if (slots.length === 0) return false;
+    let allExpired = true;
+    slots.forEach(slot => {
+        if (slot && slot.end_time) {
+            if (currentTime <= slot.end_time) {
+                allExpired = false;
+            }
+        }
+    });
+    return allExpired;
+  };
+
   const handleAddProduct = async (product) => {
     const token = await AsyncStorage.getItem("authToken");
     if (!token) {
@@ -41,13 +72,13 @@ const ProductWidget = ({ products, type = "grid" }) => {
     }
 
     if (product.total_stock > 0) {
-      if (deliveryDate === "today" && product.time_slot && product.time_slot.end_time) {
+      if (deliveryDate === "today") {
         const now = new Date();
         const currentHours = now.getHours().toString().padStart(2, "0");
         const currentMinutes = now.getMinutes().toString().padStart(2, "0");
         const currentTime = `${currentHours}:${currentMinutes}:00`;
 
-        if (currentTime > product.time_slot.end_time) {
+        if (isProductExpired(product, currentTime)) {
           setPendingProduct(product);
           setShowModal(true);
           return;
@@ -109,13 +140,30 @@ const ProductWidget = ({ products, type = "grid" }) => {
         const cartItem = cartItems?.find((item) => item.product_id === product.id);
         const parsedImage = getParsedImage(product.image);
         
+        const slots = parseTimeSlots(product.time_slot);
         let isSlotExpired = false;
-        if (product.time_slot && product.time_slot.end_time) {
+        let currentTime = "00:00:00";
+        if (slots.length > 0) {
           const now = new Date();
           const currentHours = now.getHours().toString().padStart(2, "0");
           const currentMinutes = now.getMinutes().toString().padStart(2, "0");
-          const currentTime = `${currentHours}:${currentMinutes}:00`;
-          isSlotExpired = currentTime > product.time_slot.end_time;
+          currentTime = `${currentHours}:${currentMinutes}:00`;
+          isSlotExpired = isProductExpired(product, currentTime);
+        }
+        
+        let dayLabel = "Hari ini";
+        if (slots.length > 0 && isSlotExpired) {
+          dayLabel = "Besok";
+        }
+
+        let displaySlot = null;
+        if (slots.length > 0) {
+            const sortedSlots = [...slots].sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""));
+            if (isSlotExpired) {
+                displaySlot = sortedSlots[0];
+            } else {
+                displaySlot = sortedSlots.find(slot => slot.end_time && slot.end_time >= currentTime) || sortedSlots[0];
+            }
         }
 
         return (
@@ -125,7 +173,7 @@ const ProductWidget = ({ products, type = "grid" }) => {
           >
             <TouchableOpacity onPress={() => handleProductClick(product.id)} className="relative">
               <View className="items-center mb-2 relative overflow-hidden rounded-t-lg">
-                {product.time_slot && product.time_slot.start_time && (
+                {slots.length > 0 && (
                   <View className="absolute top-0 left-0 bg-green-700/90 px-2 py-1 rounded-br-xl z-10 flex-col shadow-sm">
                     <Text className="text-[9px] font-black uppercase tracking-wider text-yellow-300">Fresh</Text>
                   </View>
@@ -148,11 +196,32 @@ const ProductWidget = ({ products, type = "grid" }) => {
               <Text className="text-sm font-semibold text-gray-800 mb-1" numberOfLines={2}>
                 {product.name}
               </Text>
-              {isSlotExpired && (
-                <View className="bg-gray-200 self-start px-2 py-0.5 rounded-[5px] mb-1">
-                  <Text className="text-[9px] font-bold text-gray-700">Tersedia besok</Text>
+
+              <View className="flex-row items-center flex-wrap mb-1">
+                <View className="bg-gray-100 px-1.5 py-0.5 rounded-[4px] mr-1 mb-1">
+                  <Text className="text-[9px] font-bold text-gray-500">{dayLabel}</Text>
                 </View>
-              )}
+                {displaySlot && displaySlot.start_time && (() => {
+                  let slotType = null;
+                  let slotBgClass = "";
+                  let slotTextClass = "";
+                  const startHour = parseInt(displaySlot.start_time.split(':')[0], 10);
+                  if (startHour < 12) {
+                    slotType = "Pagi"; slotBgClass = "bg-blue-100"; slotTextClass = "text-blue-700";
+                  } else if (startHour < 15) {
+                    slotType = "Siang"; slotBgClass = "bg-yellow-100"; slotTextClass = "text-yellow-700";
+                  } else if (startHour < 18) {
+                    slotType = "Sore"; slotBgClass = "bg-red-100"; slotTextClass = "text-red-700";
+                  } else {
+                    slotType = "Malam"; slotBgClass = "bg-purple-100"; slotTextClass = "text-purple-700";
+                  }
+                  return (
+                    <View className={`px-1.5 py-0.5 rounded-[4px] mb-1 mr-1 ${slotBgClass}`}>
+                      <Text className={`text-[9px] font-bold ${slotTextClass}`}>{slotType}</Text>
+                    </View>
+                  );
+                })()}
+              </View>
               
               <View className="flex-row flex-wrap">
                 {product.choice_options?.map((item, idx) => (
@@ -207,14 +276,7 @@ const ProductWidget = ({ products, type = "grid" }) => {
       {products.map((product) => {
         const parsedImage = getParsedImage(product.image);
         
-        let isSlotExpired = false;
-        if (product.time_slot && product.time_slot.end_time) {
-          const now = new Date();
-          const currentHours = now.getHours().toString().padStart(2, "0");
-          const currentMinutes = now.getMinutes().toString().padStart(2, "0");
-          const currentTime = `${currentHours}:${currentMinutes}:00`;
-          isSlotExpired = currentTime > product.time_slot.end_time;
-        }
+        const slots = parseTimeSlots(product.time_slot);
 
         return (
           <TouchableOpacity
@@ -223,7 +285,7 @@ const ProductWidget = ({ products, type = "grid" }) => {
             onPress={() => handleProductClick(product.id)}
           >
             <View className="relative overflow-hidden rounded-lg">
-              {product.time_slot && product.time_slot.start_time && (
+              {slots.length > 0 && (
                 <View className="absolute top-0 left-0 bg-green-700/90 px-1.5 py-0.5 rounded-br-lg z-10 flex-col shadow-sm">
                   <Text className="text-[7px] font-black uppercase tracking-wider text-yellow-300">Fresh</Text>
                 </View>
