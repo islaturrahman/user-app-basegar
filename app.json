@@ -12,6 +12,11 @@
       "icon": "./assets/icon.png",
       "buildNumber": "4"
     },
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "android": {
       "softwareKeyboardLayoutMode": "resize",
       "package": "com.app.basegar",

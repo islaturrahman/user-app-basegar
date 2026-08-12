@@ -7,78 +7,113 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
+import { Image } from "expo-image";
 import { useNavigation } from "@react-navigation/native";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { OrderContext } from "../provider/OrderProvider";
+import { path_product_img, orderDetail } from "../../../config/enpoints";
+import { post } from "../../../data/api";
 
 const statusConfig = {
-  pending: { label: "Pending", color: "#f97316", bg: "#fff7ed", border: "#fed7aa" },
-  confirmed: { label: "Dikonfirmasi", color: "#6366f1", bg: "#eef2ff", border: "#c7d2fe" },
-  processing: { label: "Diproses", color: "#10b981", bg: "#ecfdf5", border: "#a7f3d0" },
-  packaging: { label: "Packaging", color: "#0ea5e9", bg: "#f0f9ff", border: "#bae6fd" },
-  out_for_delivery: { label: "Dalam Pengiriman", color: "#3b82f6", bg: "#eff6ff", border: "#bfdbfe" },
-  completed: { label: "Selesai", color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
-  delivered: { label: "Terkirim", color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
-  canceled: { label: "Dibatalkan", color: "#ef4444", bg: "#fef2f2", border: "#fecaca" },
+  pending: { label: "Menunggu Pembayaran", icon: "clock", color: "#f97316", bg: "#fff7ed", iconColor: "#ea580c" },
+  confirmed: { label: "Pesanan Dikonfirmasi", icon: "check-circle", color: "#6366f1", bg: "#eef2ff", iconColor: "#4f46e5" },
+  processing: { label: "Sedang Diproses", icon: "box-open", color: "#10b981", bg: "#ecfdf5", iconColor: "#059669" },
+  packaging: { label: "Sedang Dikemas", icon: "box", color: "#0ea5e9", bg: "#f0f9ff", iconColor: "#0284c7" },
+  out_for_delivery: { label: "Dalam Pengiriman", icon: "motorcycle", color: "#3b82f6", bg: "#eff6ff", iconColor: "#2563eb" },
+  completed: { label: "Pesanan Selesai", icon: "check", color: "#16a34a", bg: "#f0fdf4", iconColor: "#15803d" },
+  delivered: { label: "Pesanan Terkirim", icon: "home", color: "#16a34a", bg: "#f0fdf4", iconColor: "#15803d" },
+  canceled: { label: "Pesanan Dibatalkan", icon: "times-circle", color: "#ef4444", bg: "#fef2f2", iconColor: "#dc2626" },
+  failed: { label: "Pesanan Gagal", icon: "exclamation-circle", color: "#ef4444", bg: "#fef2f2", iconColor: "#dc2626" },
 };
+
 
 const toRupiah = (v) => `Rp ${Number(v || 0).toLocaleString("id-ID")}`;
 
-const StatusBadge = ({ status }) => {
-  const cfg = statusConfig[status] || { label: status, color: "#6b7280", bg: "#f9fafb", border: "#e5e7eb" };
-  return (
-    <View
-      style={{
-        backgroundColor: cfg.bg,
-        borderColor: cfg.border,
-        borderWidth: 1,
-        borderRadius: 20,
-        paddingHorizontal: 10,
-        paddingVertical: 3,
-      }}
-    >
-      <Text style={{ color: cfg.color, fontSize: 10, fontWeight: "700" }}>
-        {cfg.label}
-      </Text>
-    </View>
-  );
-};
-
 const OrderCard = ({ order }) => {
   const navigation = useNavigation();
+  const { orderImages, fetchOrderImages } = React.useContext(OrderContext);
   const status = order?.order_status || "pending";
   const amount = Number(order?.order_amount || 0);
+
+  React.useEffect(() => {
+    if (order?.id && !orderImages[order.id]) {
+      fetchOrderImages(order.id);
+    }
+  }, [order?.id]);
+
   const date = order?.created_at
     ? new Date(order.created_at).toLocaleDateString("id-ID", {
-        day: "2-digit",
+        day: "numeric",
         month: "long",
         year: "numeric",
       })
     : "-";
 
+  const cfg = statusConfig[status] || { label: status, icon: "receipt", color: "#6b7280", bg: "#f9fafb", iconColor: "#4b5563" };
+
+  // Ambil data cache gambar untuk order ini
+  const details = orderImages[order?.id] || [];
+
   return (
-    <TouchableOpacity
-      activeOpacity={0.85}
-      onPress={() => navigation.navigate("/o/:id", { id: String(order.id) })}
-      className="bg-white mx-4 mb-3 rounded-2xl p-4 border border-gray-100"
-      style={{ shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 }}
+    <View
+      className="bg-white mx-4 mb-3 rounded-2xl p-3.5 border border-gray-100"
+      style={{ shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 }}
     >
-      <View className="flex-row justify-between items-start mb-3">
-        <View className="flex-1 mr-3">
-          <Text className="text-sm font-black text-gray-900">Order #{order.id}</Text>
-          <Text className="text-xs text-gray-400 mt-0.5">{date}</Text>
+      {/* Header */}
+      <View className="flex-row items-center justify-between mb-3">
+        <View className="flex-row items-center flex-1">
+          <View 
+            className="w-8 h-8 rounded-full items-center justify-center mr-2.5"
+            style={{ backgroundColor: cfg.bg }}
+          >
+            <FontAwesome5 name={cfg.icon} size={12} color={cfg.iconColor} />
+          </View>
+          <View className="flex-1">
+            <Text className="text-xs font-black text-gray-900 mb-0.5">{cfg.label}</Text>
+            <Text className="text-[10px] text-gray-500">{cfg.label.split(' ')[0]} {date}</Text>
+          </View>
         </View>
-        <StatusBadge status={status} />
+        <FontAwesome5 name="chevron-right" size={10} color="#4b5563" />
       </View>
 
-      <View className="flex-row justify-between items-center pt-3 border-t border-gray-50">
-        <Text className="text-base font-black text-green-700">{toRupiah(amount)}</Text>
-        <View className="flex-row items-center">
-          <Text className="text-xs text-green-700 font-semibold mr-1">Lihat Detail</Text>
-          <FontAwesome5 name="chevron-right" size={10} color="#15803d" />
+      {/* Thumbnails (if available) */}
+      {details.length > 0 && (
+        <View className="flex-row items-center mb-2.5 space-x-2">
+          {details.slice(0, 4).map((imgStr, idx) => {
+            return (
+              <View key={idx} className="w-11 h-11 bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
+                {imgStr ? (
+                  <Image source={{ uri: `${path_product_img}/${imgStr}` }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+                ) : (
+                  <View className="flex-1 items-center justify-center">
+                    <FontAwesome5 name="image" size={10} color="#9ca3af" />
+                  </View>
+                )}
+              </View>
+            );
+          })}
+          {details.length > 4 && (
+            <View className="w-11 h-11 bg-gray-50 rounded-xl border border-gray-100 items-center justify-center">
+              <Text className="text-gray-600 font-bold text-xs">+{details.length - 4}</Text>
+            </View>
+          )}
         </View>
-      </View>
-    </TouchableOpacity>
+      )}
+
+      {/* Footer / Total */}
+      <Text className="text-[10px] text-gray-500 mb-3">
+        Total Belanja: <Text className="font-bold text-gray-900 text-xs">{toRupiah(amount)}</Text>
+      </Text>
+
+      {/* Action Button */}
+      <TouchableOpacity 
+        activeOpacity={0.85}
+        onPress={() => navigation.navigate("/o/:id", { id: String(order.id) })}
+        className="w-full py-2.5 bg-green-700 rounded-xl items-center justify-center shadow-sm"
+      >
+        <Text className="text-white font-bold text-xs">Lihat Detail</Text>
+      </TouchableOpacity>
+    </View>
   );
 };
 
@@ -126,9 +161,13 @@ export default function OrderListWidget() {
     );
   }
 
+  const sortedOrders = [...orders].sort((a, b) => {
+    return new Date(b.created_at) - new Date(a.created_at);
+  });
+
   return (
     <FlatList
-      data={orders}
+      data={sortedOrders}
       keyExtractor={(item) => String(item.id)}
       renderItem={({ item }) => <OrderCard order={item} />}
       contentContainerStyle={{ paddingTop: 12, paddingBottom: 24 }}

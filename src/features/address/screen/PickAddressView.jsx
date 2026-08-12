@@ -39,9 +39,18 @@ const PickAddressView = () => {
   const [searchResult, setSearchResult] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   
-  const [mapCenter, setMapCenter] = useState({ lat: -6.2088, lng: 106.8456 }); // default Jakarta
+  const [mapCenter, setMapCenter] = useState(() => {
+    // Default ke lokasi toko (coverage) jika ada, fallback ke Jakarta
+    const storeLat = parseFloat(config?.ecommerce_location_coverage?.latitude || 0);
+    const storeLng = parseFloat(config?.ecommerce_location_coverage?.longitude || 0);
+    if (storeLat !== 0 && storeLng !== 0 && !isNaN(storeLat) && !isNaN(storeLng)) {
+      return { lat: storeLat, lng: storeLng };
+    }
+    return { lat: -6.2088, lng: 106.8456 }; // Jakarta fallback
+  });
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [isFetchingAddress, setIsFetchingAddress] = useState(false);
+  const [isLocatingGPS, setIsLocatingGPS] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
   const [snackbar, setSnackbar] = useState({ show: false, message: "" });
 
@@ -69,6 +78,7 @@ const PickAddressView = () => {
       if (!isInitial) Alert.alert('Izin Ditolak', 'Akses lokasi diperlukan.');
       return;
     }
+    setIsLocatingGPS(true);
     try {
       let location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       const lat = location.coords.latitude;
@@ -77,6 +87,8 @@ const PickAddressView = () => {
       fetchAddressFromCoords(lat, lng);
     } catch (error) {
       if (!isInitial) Alert.alert('Error', 'Gagal mendapatkan lokasi Anda.');
+    } finally {
+      setIsLocatingGPS(false);
     }
   };
 
@@ -160,6 +172,11 @@ const PickAddressView = () => {
       if (data.type === 'mapReady') {
         setIsMapReady(true);
         flyToMap(mapCenter.lat, mapCenter.lng);
+      } else if (data.type === 'onMoveStart') {
+        // Tampilkan loading instan saat user mulai menggeser peta
+        if (!isProgrammaticMove.current) {
+          setIsFetchingAddress(true);
+        }
       } else if (data.type === 'onMoveEnd') {
         if (isProgrammaticMove.current) {
           isProgrammaticMove.current = false;
@@ -169,6 +186,7 @@ const PickAddressView = () => {
         // Prevent micro-movements (like layout shifts) from triggering infinite loops
         const dist = getDistance(lastFetchedCoords.current.lat, lastFetchedCoords.current.lng, data.lat, data.lng);
         if (dist < 0.005) { // ignore if moved less than 5 meters
+          setIsFetchingAddress(false);
           return;
         }
 
@@ -275,6 +293,10 @@ const PickAddressView = () => {
           maxZoom: 19
         }).addTo(window.map);
 
+        window.map.on('movestart', function() {
+          safePostMessage({ type: 'onMoveStart' });
+        });
+
         window.map.on('moveend', function() {
           var center = window.map.getCenter();
           safePostMessage({
@@ -350,6 +372,17 @@ const PickAddressView = () => {
               </TouchableOpacity>
             ) : null}
           </View>
+
+          {/* GPS Locating Banner */}
+          {isLocatingGPS && (
+            <View className="mt-3 w-full bg-blue-50 border border-blue-200 p-3 rounded-xl flex-row items-center shadow-sm">
+              <ActivityIndicator size="small" color="#2563eb" />
+              <View className="ml-3 flex-1">
+                <Text className="text-blue-900 font-bold text-xs">Menemukan Lokasi Anda...</Text>
+                <Text className="text-blue-700 text-[10px] mt-0.5">Sistem sedang memuat koordinat GPS</Text>
+              </View>
+            </View>
+          )}
 
           {isLoading ? (
             <View className="mt-2 w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-md flex-row items-center justify-center space-x-2">

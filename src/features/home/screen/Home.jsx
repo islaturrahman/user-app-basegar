@@ -12,6 +12,7 @@ import ProductsContext from "../../../context/ProductsContext";
 import { ConfigContext } from "../../../provider/ConfigProvider";
 import CartContext from "../../../context/CartContext";
 // import DeliveryProvider from "../../delivery/provider/DeliveryProvider";
+import * as SplashScreen from 'expo-splash-screen';
 
 import HeroWidget from "../widget/HeroWidget";
 import CategoryWidget from "../widget/CategoryWidget";
@@ -154,6 +155,14 @@ export default function Home() {
     }
   });
 
+  useEffect(() => {
+    if (!isFetching) {
+      SplashScreen.hideAsync().catch(() => {
+        // Ignore if already hidden
+      });
+    }
+  }, [isFetching]);
+
   const handleRefresh = async () => {
     await refetch();
   };
@@ -164,7 +173,7 @@ export default function Home() {
 
   return (
     <View className="flex-1 bg-white">
-      <View className="absolute top-0 left-0 right-0 h-[50vh] bg-[#0461b4]" />
+      <View className="absolute top-0 left-0 right-0 h-[50vh] bg-green-700" />
       {/* Sticky Header */}
       <HeroWidget deliveryDate={deliveryDate} setDeliveryDate={setDeliveryDate} />
       
@@ -181,10 +190,10 @@ export default function Home() {
       >
         <View className="bg-white flex-1" style={{ minHeight: '100%' }}>
           {/* Scrollable Blue Extension containing Date Toggle */}
-          <View className="bg-[#0461b4] rounded-b-[24px] px-4 pt-2 pb-5 z-10">
+          <View className="bg-green-700 rounded-b-[24px] px-4 pt-2 pb-5 z-10">
             <View className="bg-white p-1 rounded-full flex-row items-center h-12 relative">
               <View 
-                className="absolute top-1 bottom-1 w-[49%] bg-blue-50 rounded-full border border-blue-100"
+                className="absolute top-1 bottom-1 w-[49%] bg-green-50 rounded-full border border-green-100"
                 style={{ left: deliveryDate === "today" ? '1%' : '50%' }}
               />
               

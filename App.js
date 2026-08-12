@@ -9,6 +9,9 @@ import NetworkMonitor from './src/components/NetworkMonitor';
 
 import GlobalProvider from './src/provider/GlobalProvider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import * as SplashScreen from 'expo-splash-screen';
+
+SplashScreen.preventAutoHideAsync();
 
 import { useFonts } from 'expo-font';
 import { 

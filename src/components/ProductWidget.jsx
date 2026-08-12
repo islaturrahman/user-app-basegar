@@ -239,19 +239,21 @@ const ProductWidget = ({ products, type = "grid" }) => {
 
             <View className="mt-2 h-8 justify-end">
               {cartItem ? (
-                <View className="flex-row items-center justify-between bg-gray-100 rounded-md">
+                <View className="flex-row items-center justify-between">
                   <TouchableOpacity
-                    className="w-8 h-8 items-center justify-center"
+                    className="w-8 h-8 rounded-full items-center justify-center border border-green-200 bg-white shadow-sm"
                     onPress={() => minQuantity && minQuantity(product.id)}
                   >
-                    <FontAwesome5 name="minus" size={12} color="#4b5563" />
+                    <Text className="text-green-700 font-bold text-base">-</Text>
                   </TouchableOpacity>
-                  <Text className="font-semibold text-gray-800">{cartItem.quantity}</Text>
+                  <View className="items-center justify-center flex-1">
+                    <Text className="text-sm font-bold text-gray-800">{cartItem.quantity}</Text>
+                  </View>
                   <TouchableOpacity
-                    className="w-8 h-8 items-center justify-center"
+                    className="w-8 h-8 rounded-full items-center justify-center shadow-sm bg-green-600"
                     onPress={() => addQuantity && addQuantity(product.id)}
                   >
-                    <FontAwesome5 name="plus" size={12} color="#15803d" />
+                    <Text className="font-bold text-base text-white">+</Text>
                   </TouchableOpacity>
                 </View>
               ) : (

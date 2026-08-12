@@ -55,7 +55,7 @@ const HeroWidget = ({ deliveryDate, setDeliveryDate }) => {
   return (
     <>
       {/* Container Background (Sticky header, flat bottom) */}
-      <View className={`relative overflow-hidden ${Platform.OS === 'web' ? 'pt-4' : 'pt-12'} pb-3 px-3 bg-[#0461b4] shadow-sm z-50`}>
+      <View className={`relative overflow-hidden ${Platform.OS === 'web' ? 'pt-4' : 'pt-12'} pb-3 px-3 bg-green-700 shadow-sm z-50`}>
         
         {/* Top Location & Wishlist bar */}
         <View className="flex-row justify-between items-center mb-[2px] relative z-10">

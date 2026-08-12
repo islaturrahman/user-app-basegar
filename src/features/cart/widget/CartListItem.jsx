@@ -142,7 +142,7 @@ const CartListItem = () => {
     return (
       <View
         key={item.product_id || index.toString()}
-        className={`bg-white p-4 flex-row items-center border-b border-gray-100 ${isCheckboxDisabled ? 'opacity-50 bg-gray-50' : ''}`}
+        className={`bg-white px-4 py-3 flex-row items-center border-b border-gray-100 ${isCheckboxDisabled ? 'opacity-50 bg-gray-50' : ''}`}
       >
       <Checkbox 
         checked={item.is_selected !== false} 
@@ -152,7 +152,7 @@ const CartListItem = () => {
         disabled={isCheckboxDisabled}
       />
       
-      <View className={`w-16 h-16 bg-gray-400 mr-3 rounded relative overflow-hidden ${isCheckboxDisabled ? 'grayscale' : ''}`}>
+      <View className={`w-14 h-14 bg-gray-400 mr-3 rounded-xl relative overflow-hidden ${isCheckboxDisabled ? 'grayscale' : ''}`}>
         <Image
           source={{ uri: `${path_product_img}/${item.image}` }}
           className="w-full h-full"
@@ -168,19 +168,17 @@ const CartListItem = () => {
       
       <View className="flex-1 relative">
         <Text className={`font-bold ${isCheckboxDisabled ? 'text-gray-500' : 'text-gray-800'}`}>{item.name}</Text>
-        <Text className={`text-sm mb-1 ${isCheckboxDisabled ? 'text-gray-400' : 'text-gray-600'}`}>
+        <Text className={`text-xs ${isCheckboxDisabled ? 'text-gray-400' : 'text-gray-600'}`}>
           {toRupiah(item.price)} x {item.quantity}
         </Text>
 
-        <View className="flex-row flex-wrap gap-1 mt-1">
+        <View className="flex-row items-center flex-wrap gap-1 mt-0.5">
           {slots.length > 0 && (
             <View className="bg-green-600 py-0.5 px-1.5 rounded flex-row items-center self-start">
               <Text className="text-[10px] text-yellow-300 font-bold">Fresh</Text>
             </View>
           )}
-        </View>
-        <View className="flex-row items-center flex-wrap mt-1">
-          <View className={`px-1.5 py-0.5 rounded-[4px] mr-1 mb-1 ${isCheckboxDisabled ? 'bg-gray-200' : 'bg-gray-100'}`}>
+          <View className={`px-1.5 py-0.5 rounded-[4px] ${isCheckboxDisabled ? 'bg-gray-200' : 'bg-gray-100'}`}>
             <Text className={`text-[9px] font-bold ${isCheckboxDisabled ? 'text-gray-400' : 'text-gray-500'}`}>{dayLabel}</Text>
           </View>
           {displaySlot && displaySlot.start_time && (() => {
@@ -202,7 +200,7 @@ const CartListItem = () => {
                 slotTextClass = "text-gray-400";
             }
             return (
-              <View className={`px-1.5 py-0.5 rounded-[4px] mb-1 mr-1 ${slotBgClass}`}>
+              <View className={`px-1.5 py-0.5 rounded-[4px] ${slotBgClass}`}>
                 <Text className={`text-[9px] font-bold ${slotTextClass}`}>{slotType}</Text>
               </View>
             );
@@ -210,21 +208,21 @@ const CartListItem = () => {
         </View>
       </View>
       
-      <View className={`flex-row items-center ml-auto rounded border overflow-hidden w-20 h-8 ${isCheckboxDisabled ? 'bg-gray-100 border-gray-200 opacity-50' : 'bg-gray-50 border-gray-300'}`}>
+      <View className={`flex-row items-center ml-auto ${isCheckboxDisabled ? 'opacity-50' : ''}`}>
         <TouchableOpacity
-          className="w-7 h-full flex items-center justify-center"
+          className={`w-7 h-7 rounded-full items-center justify-center border ${isCheckboxDisabled ? 'border-gray-200 bg-gray-100' : 'border-green-200 bg-white shadow-sm'}`}
           onPress={() => { if(!isCheckboxDisabled) minQuantity(item.product_id); }}
         >
-          <Text className={`${isCheckboxDisabled ? 'text-gray-400' : 'text-red-500'} font-bold text-lg`}>-</Text>
+          <Text className={`${isCheckboxDisabled ? 'text-gray-400' : 'text-green-700'} font-bold text-sm`}>-</Text>
         </TouchableOpacity>
-        <View className="flex-1 items-center justify-center">
-          <Text className={`text-sm font-semibold ${isCheckboxDisabled ? 'text-gray-400' : ''}`}>{item.quantity}</Text>
+        <View className="w-8 items-center justify-center">
+          <Text className={`text-sm font-bold ${isCheckboxDisabled ? 'text-gray-400' : 'text-gray-800'}`}>{item.quantity}</Text>
         </View>
         <TouchableOpacity
-          className="w-7 h-full flex items-center justify-center"
+          className={`w-7 h-7 rounded-full items-center justify-center shadow-sm ${isCheckboxDisabled ? 'bg-gray-200' : 'bg-green-600'}`}
           onPress={() => { if(!isCheckboxDisabled) addQuantity(item.product_id); }}
         >
-          <Text className={`${isCheckboxDisabled ? 'text-gray-400' : 'text-green-500'} font-bold text-lg`}>+</Text>
+          <Text className={`font-bold text-sm ${isCheckboxDisabled ? 'text-gray-400' : 'text-white'}`}>+</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -236,41 +234,43 @@ const CartListItem = () => {
       <View className="mb-0">
         
         {/* Delivery Date Selection Chips */}
-        <View className="bg-white px-4 pt-4 pb-3 border-b border-gray-100">
-          <Text className="font-bold text-gray-800 mb-3">Pilih Pengiriman</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {dates.map((item) => {
-              const isSelected = deliveryDate === item.id;
-              
-              // Hitung jumlah produk yang secara murni bisa diproses HARI INI 
-              // tanpa terpengaruh oleh state `deliveryDate` saat ini
-              const todayAvailableCount = cart?.filter(p => !isProductExpired(p, currentTime)).length || 0;
-              const availableCount = item.id === "today" ? todayAvailableCount : totalProducts;
-              
-              return (
-                <TouchableOpacity 
-                  key={item.id}
-                  onPress={() => handleSelectDate(item.id)}
-                  className={`mr-3 p-3 rounded-xl border flex items-center justify-center min-w-[100px] ${
-                    isSelected ? 'border-green-600 bg-green-50 shadow-sm' : 'border-gray-200 bg-white'
-                  }`}
-                >
-                  <Text className={`font-bold text-sm ${isSelected ? 'text-green-800' : 'text-gray-700'}`}>
-                    {item.label}
-                  </Text>
-                  <Text className={`text-xs mt-1 ${isSelected ? 'text-green-700' : 'text-gray-500'}`}>
-                    {item.dateStr}
-                  </Text>
-                  <View className={`mt-2 px-2 py-0.5 rounded-full ${isSelected ? 'bg-green-200' : 'bg-gray-100'}`}>
-                    <Text className={`text-[10px] font-medium ${isSelected ? 'text-green-800' : 'text-gray-600'}`}>
-                      {availableCount} produk
+        {cart && cart.length > 0 && (
+          <View className="bg-white px-4 pt-4 pb-3 border-b border-gray-100">
+            <Text className="font-bold text-gray-800 mb-3">Pilih Pengiriman</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {dates.map((item) => {
+                const isSelected = deliveryDate === item.id;
+                
+                // Hitung jumlah produk yang secara murni bisa diproses HARI INI 
+                // tanpa terpengaruh oleh state `deliveryDate` saat ini
+                const todayAvailableCount = cart?.filter(p => !isProductExpired(p, currentTime)).length || 0;
+                const availableCount = item.id === "today" ? todayAvailableCount : totalProducts;
+                
+                return (
+                  <TouchableOpacity 
+                    key={item.id}
+                    onPress={() => handleSelectDate(item.id)}
+                    className={`mr-3 p-3 rounded-xl border flex items-center justify-center min-w-[100px] ${
+                      isSelected ? 'border-green-600 bg-green-50 shadow-sm' : 'border-gray-200 bg-white'
+                    }`}
+                  >
+                    <Text className={`font-bold text-sm ${isSelected ? 'text-green-800' : 'text-gray-700'}`}>
+                      {item.label}
                     </Text>
-                  </View>
-                </TouchableOpacity>
-              )
-            })}
-          </ScrollView>
-        </View>
+                    <Text className={`text-xs mt-1 ${isSelected ? 'text-green-700' : 'text-gray-500'}`}>
+                      {item.dateStr}
+                    </Text>
+                    <View className={`mt-2 px-2 py-0.5 rounded-full ${isSelected ? 'bg-green-200' : 'bg-gray-100'}`}>
+                      <Text className={`text-[10px] font-medium ${isSelected ? 'text-green-800' : 'text-gray-600'}`}>
+                        {availableCount} produk
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                )
+              })}
+            </ScrollView>
+          </View>
+        )}
 
         {cart && cart.length > 0 ? (
           <View>

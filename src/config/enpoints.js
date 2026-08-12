@@ -1,4 +1,4 @@
-export const base_url = "http://192.168.232.161:8000"; // Menggunakan IP lokal agar bisa diakses dari emulator/device
+export const base_url = "http://192.168.11.161:8000"; // Menggunakan IP lokal agar bisa diakses dari emulator/device
 
 export const flash_deal = "/api/v1/flash-deals";
 export const banners = "/api/v1/banners";

@@ -393,7 +393,7 @@ const AddAddressView = () => {
       </ScrollView>
 
       {/* Submit Button */}
-      <View className="p-4 bg-white border-t border-gray-100">
+      <View className="p-4 pb-10 bg-white border-t border-gray-100">
         <TouchableOpacity
           onPress={handleAddressSubmit}
           className="w-full py-3.5 bg-green-700 rounded-2xl items-center flex-row justify-center shadow-sm"

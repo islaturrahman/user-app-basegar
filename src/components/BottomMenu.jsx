@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { View, Text, TouchableOpacity, Platform, Keyboard } from 'react-native';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
-import { Home, LayoutGrid, MessageSquare, ShoppingCart, User } from 'lucide-react-native';
+import { Home, LayoutGrid, MessageCircle, FileText, User } from 'lucide-react-native';
 import CartContext from '../context/CartContext';
 import ChatContext from '../context/ChatContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -55,7 +55,7 @@ export function BottomMenu() {
   }, []);
 
   // Hide BottomMenu on specific routes
-  const hiddenRoutes = ['/cart', '/checkout', '/o/:id', '/orders', '/p/:id'];
+  const hiddenRoutes = ['/cart', '/checkout', '/o/:id', '/p/:id'];
   if (
     currentRouteName &&
     (currentRouteName.startsWith('/address') || hiddenRoutes.includes(currentRouteName))
@@ -109,7 +109,7 @@ export function BottomMenu() {
         onPress={() => handleProtectedNavigation('/cs')}
         className="flex-1 items-center py-1 relative"
       >
-        <MessageSquare 
+        <MessageCircle 
           size={22} 
           color={isActive('/cs') ? activeColor : inactiveColor}
           strokeWidth={isActive('/cs') ? 2.5 : 2}
@@ -126,25 +126,20 @@ export function BottomMenu() {
         </Text>
       </TouchableOpacity>
 
-      {/* Keranjang */}
+      {/* Pesanan */}
       <TouchableOpacity
-        onPress={() => handleProtectedNavigation('/cart')}
+        onPress={() => handleProtectedNavigation('/orders')}
         className="flex-1 items-center py-1 relative"
       >
-        <ShoppingCart 
+        <FileText 
           size={22} 
-          color={isActive('/cart') ? activeColor : inactiveColor}
-          strokeWidth={isActive('/cart') ? 2.5 : 2}
+          color={isActive('/orders') ? activeColor : inactiveColor}
+          strokeWidth={isActive('/orders') ? 2.5 : 2}
         />
-        {cart && cart.length > 0 && (
-          <View className="absolute top-0 right-4 bg-red-500 rounded-full w-4 h-4 items-center justify-center border border-white">
-            <Text className="text-white text-[9px] font-black">{cart.length}</Text>
-          </View>
-        )}
         <Text 
-          className={`text-[10px] font-semibold mt-1 tracking-wide ${isActive('/cart') ? 'text-green-700' : 'text-gray-500'}`}
+          className={`text-[10px] font-semibold mt-1 tracking-wide ${isActive('/orders') ? 'text-green-700' : 'text-gray-500'}`}
         >
-          Keranjang
+          Pesanan
         </Text>
       </TouchableOpacity>
 

@@ -177,23 +177,40 @@ export default function OrderDetailWidget() {
             <Text className="text-xs font-black text-gray-700 uppercase tracking-wider mb-3">
               Item Pesanan
             </Text>
-            {orderDetails.map((item, idx) => (
-              <View
-                key={idx}
-                className="flex-row justify-between items-center py-2"
-                style={{ borderTopWidth: idx > 0 ? 1 : 0, borderColor: "#f3f4f6" }}
-              >
-                <View className="flex-1 mr-3">
-                  <Text className="text-sm font-semibold text-gray-800" numberOfLines={2}>
-                    {item.product_details?.name || item.name || "Produk"}
+            {orderDetails.map((item, idx) => {
+              let variantDisplay = item.variant;
+              if (typeof item.variant === "string" && item.variant.startsWith("[")) {
+                try {
+                  const parsed = JSON.parse(item.variant);
+                  if (Array.isArray(parsed)) variantDisplay = parsed.join(", ");
+                } catch (e) {}
+              } else if (Array.isArray(item.variant)) {
+                variantDisplay = item.variant.join(", ");
+              }
+              
+              return (
+                <View
+                  key={idx}
+                  className="flex-row justify-between items-center py-2"
+                  style={{ borderTopWidth: idx > 0 ? 1 : 0, borderColor: "#f3f4f6" }}
+                >
+                  <View className="flex-1 mr-3">
+                    <Text className="text-sm font-semibold text-gray-800" numberOfLines={2}>
+                      {item.product_details?.name || item.name || "Produk"}
+                    </Text>
+                    {variantDisplay ? (
+                      <View className="self-start bg-green-50 px-1.5 py-0.5 rounded border border-green-200 mt-1">
+                        <Text className="text-[10px] text-green-700 font-bold">{variantDisplay}</Text>
+                      </View>
+                    ) : null}
+                    <Text className="text-xs text-gray-400 mt-1">x{item.quantity || 1}</Text>
+                  </View>
+                  <Text className="text-sm font-bold text-green-700">
+                    {toRupiah(Number(item.price || 0) * Number(item.quantity || 1))}
                   </Text>
-                  <Text className="text-xs text-gray-400 mt-0.5">x{item.quantity || 1}</Text>
                 </View>
-                <Text className="text-sm font-bold text-green-700">
-                  {toRupiah(Number(item.price || 0) * Number(item.quantity || 1))}
-                </Text>
-              </View>
-            ))}
+              );
+            })}
           </View>
         ) : error ? (
           <View className="bg-red-50 rounded-2xl p-4 mb-4 border border-red-100 flex-row items-center">

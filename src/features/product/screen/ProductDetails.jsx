@@ -131,6 +131,19 @@ const ProductDetails = () => {
       return;
     }
 
+    const isMainProduct = product && p.id === product.id;
+    if (p.variations && p.variations.length > 0) {
+      if (isMainProduct) {
+        if (!selectedVariation) {
+          triggerSnackbar("Silakan pilih variasi produk terlebih dahulu.");
+          return;
+        }
+      } else {
+        handleNavigateAndClose("/p/:id", { id: p.id });
+        return;
+      }
+    }
+
     if (deliveryDate === "today" && p.time_slot && p.time_slot.end_time) {
       const now = new Date();
       const currentHours = now.getHours().toString().padStart(2, "0");
