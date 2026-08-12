@@ -4,8 +4,9 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BottomMenu } from "../../../components/BottomMenu";
 import { CustomerProvider } from "../../../provider/CustomerProvider";
-import { Coins, Sprout, Ticket, Receipt, MapPin, CreditCard, Undo2, Info, ShieldCheck, FileText, LogOut, ChevronRight, Pencil, Sparkles } from "lucide-react-native";
+import { Coins, Sprout, Ticket, Receipt, MapPin, CreditCard, Undo2, Info, ShieldCheck, FileText, LogOut, ChevronRight, Pencil, Sparkles, Wallet } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { toRupiah } from "../../../components/Helper";
 
 const TextShimmerLoad = () => (
   <View className="w-48 h-6 bg-gray-200 rounded animate-pulse" />
@@ -180,7 +181,7 @@ export default function Account() {
     {
       title: "Metode Pengembalian Dana",
       icon: Undo2,
-      onPress: () => {}
+      onPress: () => navigation.navigate("/refund-method")
     },
     {
       title: "Tentang Kami",
@@ -234,6 +235,33 @@ export default function Account() {
 
       <ScrollView className="flex-1 px-4 pt-4" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         
+        {/* Wallet & Poin */}
+        <View className="flex-row justify-between mb-4">
+          <TouchableOpacity activeOpacity={0.8} className="bg-white rounded-2xl p-3 flex-1 mr-2 border border-gray-100 shadow-sm flex-row items-center">
+            <View className="w-9 h-9 rounded-full bg-green-50 items-center justify-center mr-2.5">
+              <Wallet size={18} color="#16a34a" />
+            </View>
+            <View className="flex-1">
+              <Text className="text-[10px] font-poppins-regular text-gray-500">Saldo Wallet</Text>
+              <Text className="text-[13px] font-poppins-bold text-gray-800 tracking-tight">
+                {user ? toRupiah(user.wallet_balance || 0) : "Rp 0"}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity activeOpacity={0.8} className="bg-white rounded-2xl p-3 flex-1 ml-2 border border-gray-100 shadow-sm flex-row items-center">
+            <View className="w-9 h-9 rounded-full bg-yellow-50 items-center justify-center mr-2.5">
+              <Coins size={18} color="#eab308" />
+            </View>
+            <View className="flex-1">
+              <Text className="text-[10px] font-poppins-regular text-gray-500">BasegarPoin</Text>
+              <Text className="text-[13px] font-poppins-bold text-gray-800 tracking-tight">
+                {user ? (user.loyalty_point || 0) : 0} Poin
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
         <View className="mb-4 bg-white rounded-2xl overflow-hidden border border-gray-100">
           <MenuItem 
             title="BasegarPlus!"

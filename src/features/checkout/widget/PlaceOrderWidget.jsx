@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, Alert, Platform } from "react-native";
+import { View, Text, TouchableOpacity, Alert, Platform, DeviceEventEmitter } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { FontAwesome5 } from "@expo/vector-icons";
 
@@ -19,6 +19,8 @@ const PlaceOrderWidget = () => {
   const { config } = useContext(ConfigContext) || {};
 
   const [orderAmount, setOrderAmount] = useState(0);
+  const [useWallet, setUseWallet] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
 
   const totalItemPrice = getTotalPrice ? getTotalPrice() : 0;
   const freeDeliveryThreshold = config?.free_delivery_over_amount || 0;
@@ -49,6 +51,26 @@ const PlaceOrderWidget = () => {
     setOrderAmount(total);
     AsyncStorage.setItem("order_amount", String(total)).catch((e) => console.log(e));
   }, [cart, finalDeliveryCharge, totalItemPrice]);
+
+  useEffect(() => {
+    const listener = DeviceEventEmitter.addListener('walletToggled', (data) => {
+      setUseWallet(data.useWallet);
+      setWalletBalance(data.balance);
+    });
+
+    // Cek inisial statenya
+    const checkInitialState = async () => {
+      const isPartial = await AsyncStorage.getItem("is_partial");
+      const savedUser = await AsyncStorage.getItem("user");
+      setUseWallet(isPartial === "1");
+      if (savedUser) {
+        setWalletBalance(parseFloat(JSON.parse(savedUser).wallet_balance) || 0);
+      }
+    };
+    checkInitialState();
+
+    return () => listener.remove();
+  }, []);
 
   // Show validation error from provider as Alert
   useEffect(() => {
@@ -88,9 +110,20 @@ const PlaceOrderWidget = () => {
         )}
       </View>
 
-      <View className="flex-row justify-between mb-3 items-center">
-        <Text className="text-xs text-gray-500 font-medium">Total Pesanan</Text>
-        <Text className="text-base font-black text-green-700">{toRupiah(orderAmount)}</Text>
+      {useWallet && walletBalance > 0 && (
+        <View className="flex-row justify-between mb-1.5 items-center">
+          <Text className="text-xs text-gray-500 font-medium">Dipotong Wallet</Text>
+          <Text className="text-xs font-bold text-orange-600">
+            -{toRupiah(Math.min(walletBalance, orderAmount))}
+          </Text>
+        </View>
+      )}
+
+      <View className="flex-row justify-between mb-3 items-center pt-1 border-t border-gray-50">
+        <Text className="text-xs text-gray-800 font-bold">{useWallet ? "Sisa Tagihan" : "Total Pesanan"}</Text>
+        <Text className="text-base font-black text-green-700">
+          {toRupiah(useWallet ? Math.max(0, orderAmount - walletBalance) : orderAmount)}
+        </Text>
       </View>
 
       <TouchableOpacity

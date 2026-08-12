@@ -11,7 +11,7 @@ import { FontAwesome5 } from "@expo/vector-icons";
 
 const { width } = Dimensions.get('window');
 
-const FloatingFreeDeliveryProgress = ({ isCart = false }) => {
+const FloatingFreeDeliveryProgress = ({ isCart = false, isCategory = false }) => {
   const { cart } = useContext(CartContext) || { cart: [] };
   const { config } = useContext(ConfigContext) || {};
   const { deliverCharge } = useContext(DeliveryContext) || { deliverCharge: 0 };
@@ -73,7 +73,11 @@ const FloatingFreeDeliveryProgress = ({ isCart = false }) => {
   return (
     <View
       className="absolute left-0 right-0 z-50 px-4 items-center w-full"
-      style={{ bottom: Platform.OS === 'android' ? (isCart ? 140 : 108) : (isCart ? 100 : 68) }}
+      style={{ 
+        bottom: Platform.OS === 'android' 
+          ? (isCart ? 140 : (isCategory ? 40 : 110)) 
+          : (isCart ? 100 : (isCategory ? 30 : 80)) 
+      }}
       pointerEvents="box-none"
     >
       <TouchableOpacity 

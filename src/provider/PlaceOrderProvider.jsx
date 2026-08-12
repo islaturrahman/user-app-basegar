@@ -106,6 +106,14 @@ const OrderPlaceProvider = ({ children }) => {
     const distance = await AsyncStorage.getItem("distance");
     const payment_method = await AsyncStorage.getItem("payment_method");
     const order_note = (await AsyncStorage.getItem("order_note")) || "";
+    const is_partial = (await AsyncStorage.getItem("is_partial")) === "1" ? 1 : 0;
+    const savedUser = await AsyncStorage.getItem("user");
+    const wallet_balance = savedUser ? (parseFloat(JSON.parse(savedUser).wallet_balance) || 0) : 0;
+    
+    let gateway_amount = parseFloat(order_amount);
+    if (is_partial === 1) {
+      gateway_amount = Math.max(0, gateway_amount - wallet_balance);
+    }
 
     const jsonBody = {
       order_amount: parseFloat(order_amount),
@@ -114,7 +122,7 @@ const OrderPlaceProvider = ({ children }) => {
       order_type: "delivery",
       branch_id: 1,
       distance: distance,
-      is_partial: 0,
+      is_partial: is_partial === 1 ? "1" : "0",
       cart: cart.filter(item => item.is_selected !== false),
       coupon_code: "",
       coupon_discount_amount: 0,
@@ -151,7 +159,7 @@ const OrderPlaceProvider = ({ children }) => {
               error_message: chargeResponse.message || "Gagal memulai pembayaran DANA",
             });
           }
-        } else if (payment_method !== "cash_on_delivery" && payment_method !== "offline_payment") {
+        } else if (payment_method !== "cash_on_delivery" && payment_method !== "offline_payment" && payment_method !== "wallet" && payment_method !== "wallet_payment") {
           const customer_id = address?.user_id || 1;
           const callback_url = `basegar://o/${response.order_id}`;
           // Fix btoa not being available directly in some RN versions
@@ -159,12 +167,12 @@ const OrderPlaceProvider = ({ children }) => {
           // Assuming it's already working in the app since it was used before.
           let token = "";
           try {
-            const tokenRaw = `customer_id=${customer_id}&&callback=${callback_url}&&order_amount=${order_amount}&&is_guest=1&&attribute_id=${response.order_id}`;
+            const tokenRaw = `customer_id=${customer_id}&&callback=${callback_url}&&order_amount=${gateway_amount}&&is_guest=1&&attribute_id=${response.order_id}`;
             token = btoa(tokenRaw);
           } catch(e) {
             // simple base64 fallback if btoa is missing
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-            const str = `customer_id=${customer_id}&&callback=${callback_url}&&order_amount=${order_amount}&&is_guest=1&&attribute_id=${response.order_id}`;
+            const str = `customer_id=${customer_id}&&callback=${callback_url}&&order_amount=${gateway_amount}&&is_guest=1&&attribute_id=${response.order_id}`;
             let output = '';
             for (let block, charCode, idx = 0, map = chars;
               str.charAt(idx | 0) || (map = '=', idx % 1);
@@ -189,6 +197,8 @@ const OrderPlaceProvider = ({ children }) => {
             order_id: response.order_id,
             order_amount: parseFloat(order_amount),
             payment_method: payment_method,
+            is_partial: is_partial === 1,
+            wallet_balance: wallet_balance,
             is_error: false,
           });
         }

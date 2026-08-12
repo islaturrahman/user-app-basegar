@@ -22,6 +22,7 @@ import OrderSuccessView from "../features/orders/screen/OrderSuccessView";
 import ChatCsView from "../features/cs/screen/ChatCsView";
 import StaticPage from "../features/user/screen/StaticPage";
 import VoucherView from "../features/voucher/screen/VoucherView";
+import RefundMethodView from "../features/user/screen/RefundMethodView";
 // ... dan lain-lain
 const Stack = createNativeStackNavigator();
 
@@ -65,7 +66,7 @@ export default function Router() {
   // React Navigation handles the state update gracefully.
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       {/* 
         ========================================================
         RUTE PUBLIK (Dapat diakses siapa saja, termasuk yang belum login)
@@ -114,6 +115,7 @@ export default function Router() {
           <Stack.Screen name="/o/:id" component={OrderDetailView} />
           <Stack.Screen name="/o/:id/success" component={OrderSuccessView} />
           <Stack.Screen name="/checkout" component={Checkout} />
+          <Stack.Screen name="/refund-method" component={RefundMethodView} />
           <Stack.Screen name="/help" component={PlaceholderScreen} />
         </>
       ) : null}

@@ -1,11 +1,14 @@
 import React, { useContext, useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, Image, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, Image, ScrollView, Switch, DeviceEventEmitter } from "react-native";
 import { FontAwesome5 } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
+import { useFocusEffect } from "@react-navigation/native";
+import { CustomerProvider } from "../../../provider/CustomerProvider";
 import { PaymentContext } from "../provider/PaymentProvider";
 import CartContext from "../../../context/CartContext";
 import { BlankBottomSheet } from "../../../components/BlankBottomSheet";
+import { toRupiah } from "../../../components/Helper";
+import { Wallet } from "lucide-react-native";
 
 const PaymentWidget = ({ config }) => {
   const { payment, setPayment } = useContext(PaymentContext);
@@ -13,6 +16,8 @@ const PaymentWidget = ({ config }) => {
 
   const [handleSelectedPayment, setHandleSelectedPayment] = useState(null);
   const [openSelectPayment, setOpenSelectPayment] = useState(false);
+  const [user, setUser] = useState(null);
+  const [useWallet, setUseWallet] = useState(false);
   
   const total = getTotalPrice ? getTotalPrice() : 0;
   const paymentMethods = [];
@@ -84,12 +89,58 @@ const PaymentWidget = ({ config }) => {
           if (setPayment) setPayment(paymentMethods[0].slug);
           await AsyncStorage.setItem("payment_method", paymentMethods[0].slug);
         }
+
+        // Ambil status is_partial yang tersimpan (opsional, jika ingin persisten)
+        const savedIsPartial = await AsyncStorage.getItem("is_partial");
+        const initialUseWallet = savedIsPartial === "1";
+        setUseWallet(initialUseWallet);
+        
+        DeviceEventEmitter.emit('walletToggled', { 
+          useWallet: initialUseWallet, 
+          balance: parseFloat(user?.wallet_balance) || 0 
+        });
       } catch (e) {
         console.error(e);
       }
     };
     initializePayment();
   }, [config]);
+
+  // Fetch data user secara spesifik setiap kali checkout dikunjungi
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchWalletBalance = async () => {
+        try {
+          const customerProvider = new CustomerProvider();
+          const userModel = await customerProvider.getCustomer();
+          let userToUse = null;
+          if (userModel) {
+            const userData = userModel.getUser();
+            if (userData && (userData.id || userData.f_name)) {
+              setUser(userData);
+              userToUse = userData;
+              await AsyncStorage.setItem("user", JSON.stringify(userData));
+            } else {
+              const savedUser = await AsyncStorage.getItem("user");
+              if (savedUser) {
+                 userToUse = JSON.parse(savedUser);
+                 setUser(userToUse);
+              }
+            }
+          }
+          const isPartial = await AsyncStorage.getItem("is_partial");
+          DeviceEventEmitter.emit('walletToggled', { 
+            useWallet: isPartial === "1", 
+            balance: parseFloat(userToUse?.wallet_balance) || 0 
+          });
+        } catch (e) {
+          console.error("Gagal update wallet:", e);
+        }
+      };
+      
+      fetchWalletBalance();
+    }, [])
+  );
 
   const handleSelectPayment = async (index) => {
     setHandleSelectedPayment(index);
@@ -99,9 +150,74 @@ const PaymentWidget = ({ config }) => {
     setOpenSelectPayment(false);
   };
 
+  const toggleWallet = async (value) => {
+    setUseWallet(value);
+    
+    const balance = parseFloat(user?.wallet_balance) || 0;
+    const isSufficient = balance >= total;
+
+    // is_partial is ONLY true if wallet is used BUT NOT sufficient to cover the whole total
+    const isPartial = value && !isSufficient;
+    await AsyncStorage.setItem("is_partial", isPartial ? "1" : "0");
+    
+    DeviceEventEmitter.emit('walletToggled', { 
+      useWallet: value, 
+      balance: balance 
+    });
+    
+    if (value && isSufficient) {
+      if (setPayment) setPayment("wallet_payment");
+      await AsyncStorage.setItem("payment_method", "wallet_payment");
+    } else {
+      if (handleSelectedPayment !== null && paymentMethods[handleSelectedPayment]) {
+        const selectedSlug = paymentMethods[handleSelectedPayment].slug;
+        if (setPayment) setPayment(selectedSlug);
+        await AsyncStorage.setItem("payment_method", selectedSlug);
+      }
+    }
+  };
+
+  const walletBalance = parseFloat(user?.wallet_balance) || 0;
+  const isWalletSufficient = walletBalance >= total;
+  const showWalletToggle = walletBalance > 0;
+  const remainingTagihan = isWalletSufficient ? 0 : total - walletBalance;
+
   return (
     <View className="bg-white p-4 mt-2">
-      <Text className="font-bold text-gray-800 mb-3 text-sm">Metode Pembayaran</Text>
+      {showWalletToggle && (
+        <View className="mb-4">
+          <Text className="font-bold text-gray-800 mb-3 text-sm">Gunakan Saldo Wallet</Text>
+          <View className={`border rounded-xl p-3 flex-row items-center justify-between ${useWallet ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
+            <View className="flex-row items-center flex-1">
+              <View className={`w-8 h-8 rounded-full items-center justify-center mr-3 ${useWallet ? 'bg-green-100' : 'bg-gray-100'}`}>
+                <Wallet size={16} color={useWallet ? '#16a34a' : '#6b7280'} />
+              </View>
+              <View className="flex-1">
+                <Text className="font-bold text-gray-800 text-xs">Saldo Wallet</Text>
+                <Text className="text-[11px] text-gray-500 mt-0.5">{toRupiah(walletBalance)}</Text>
+              </View>
+            </View>
+            <Switch
+              value={useWallet}
+              onValueChange={toggleWallet}
+              disabled={walletBalance <= 0}
+              trackColor={{ false: "#d1d5db", true: "#86efac" }}
+              thumbColor={useWallet ? "#16a34a" : "#f3f4f6"}
+            />
+          </View>
+          
+        {useWallet && isWalletSufficient && (
+          <View className="mt-2 flex-row justify-between items-center bg-green-100 px-3 py-2 rounded-lg border border-green-200">
+            <Text className="text-[10px] text-green-800">Saldo mencukupi untuk seluruh tagihan.</Text>
+          </View>
+        )}
+        </View>
+      )}
+
+      {/* Jika saldo wallet menutupi SEMUA tagihan DAN toggle wallet aktif, sembunyikan pemilihan metode pembayaran lain */}
+      {!(useWallet && isWalletSufficient) && (
+        <>
+          <Text className="font-bold text-gray-800 mb-3 text-sm">Metode Pembayaran {useWallet ? "Sisa Tagihan" : ""}</Text>
       
       <TouchableOpacity
         activeOpacity={0.8}
@@ -200,6 +316,8 @@ const PaymentWidget = ({ config }) => {
           </ScrollView>
         </View>
       </BlankBottomSheet>
+        </>
+      )}
     </View>
   );
 };

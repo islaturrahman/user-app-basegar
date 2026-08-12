@@ -22,8 +22,13 @@ export default function OrderSuccessView() {
   const orderId    = route.params?.order_id;
   const orderAmount = route.params?.order_amount;
   const paymentMethod = route.params?.payment_method;
+  const isPartial = route.params?.is_partial === true;
+  const walletBalance = Number(route.params?.wallet_balance || 0);
   const errorMessage  = route.params?.error_message;
   const isError       = route.params?.is_error === true;
+
+  const partialAmount = isPartial ? Math.min(walletBalance, orderAmount || 0) : 0;
+  const remainingTagihan = Math.max(0, (orderAmount || 0) - partialAmount);
 
   // Bounce animation for icon
   const bounceAnim = useRef(new Animated.Value(0)).current;
@@ -150,10 +155,22 @@ export default function OrderSuccessView() {
                   </View>
                 )}
                 {orderAmount && (
-                  <View className="flex-row justify-between items-center py-2 border-b border-gray-50">
-                    <Text className="text-xs text-gray-500">Total Pembayaran</Text>
-                    <Text className="text-sm font-black text-green-700">{toRupiah(orderAmount)}</Text>
-                  </View>
+                  <>
+                    {isPartial && partialAmount > 0 && (
+                      <View className="flex-row justify-between items-center py-2 border-b border-gray-50">
+                        <Text className="text-xs text-gray-500">Dipotong Wallet</Text>
+                        <Text className="text-sm font-bold text-orange-600">-{toRupiah(partialAmount)}</Text>
+                      </View>
+                    )}
+                    <View className="flex-row justify-between items-center py-2 border-b border-gray-50">
+                      <Text className="text-xs text-gray-800 font-bold">
+                        {isPartial && partialAmount > 0 ? "Sisa Tagihan" : "Total Pembayaran"}
+                      </Text>
+                      <Text className="text-sm font-black text-green-700">
+                        {toRupiah(isPartial && partialAmount > 0 ? remainingTagihan : orderAmount)}
+                      </Text>
+                    </View>
+                  </>
                 )}
                 <View className="flex-row justify-between items-center py-2">
                   <Text className="text-xs text-gray-500">Status</Text>
@@ -187,7 +204,7 @@ export default function OrderSuccessView() {
               activeOpacity={0.85}
               onPress={() => {
                 const msg = orderId
-                  ? `Halo, saya ingin konfirmasi pesanan #${orderId} dengan total ${toRupiah(orderAmount)}`
+                  ? `Halo, saya ingin konfirmasi pesanan #${orderId} dengan ${isPartial ? "sisa tagihan" : "total"} ${toRupiah(isPartial ? remainingTagihan : orderAmount)}`
                   : `Halo, saya ingin konfirmasi pesanan saya`;
                 Linking.openURL(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`);
               }}

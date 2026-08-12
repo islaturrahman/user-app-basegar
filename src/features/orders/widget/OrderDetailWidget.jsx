@@ -236,15 +236,47 @@ export default function OrderDetailWidget() {
               {toRupiah(order?.delivery_charge || 0)}
             </Text>
           </View>
-          <View
-            className="flex-row justify-between pt-2 mt-1"
-            style={{ borderTopWidth: 1, borderColor: "#f3f4f6" }}
-          >
-            <Text className="text-sm font-black text-gray-900">Total Pembayaran</Text>
-            <Text className="text-base font-black text-green-700">
-              {toRupiah(order?.order_amount || 0)}
-            </Text>
-          </View>
+          {(() => {
+            const isFullWallet = order?.payment_method === "wallet_payment";
+            const totalOrder = Number(order?.order_amount || 0);
+            
+            const payments = Array.isArray(order?.payments) ? order.payments : Array.isArray(order?.partial_payment) ? order.partial_payment : [];
+            let partialAmount = payments.reduce((acc, curr) => {
+              if (curr.payment_method === 'wallet_payment' || curr.paid_with === 'wallet_payment' || curr.paid_with === 'wallet' || curr.payment_status === 'paid') {
+                 return acc + Number(curr.paid_amount || curr.amount || 0);
+              }
+              return acc;
+            }, 0) || Number(order?.partially_paid_amount || 0);
+            
+            // Jika metode pembayaran utama adalah wallet (dibayar penuh dengan wallet), maka potongannya adalah sebesar total pesanan
+            if (isFullWallet) {
+              partialAmount = totalOrder;
+            }
+            
+            const isPartial = partialAmount > 0;
+
+            return (
+              <>
+                {isPartial && (
+                  <View className="flex-row justify-between mb-2">
+                    <Text className="text-sm text-gray-500">Dipotong Wallet</Text>
+                    <Text className="text-sm font-semibold text-orange-600">
+                      -{toRupiah(partialAmount)}
+                    </Text>
+                  </View>
+                )}
+                <View
+                  className="flex-row justify-between pt-2 mt-1"
+                  style={{ borderTopWidth: 1, borderColor: "#f3f4f6" }}
+                >
+                  <Text className="text-sm font-black text-gray-900">{isPartial ? "Sisa Tagihan" : "Total Pembayaran"}</Text>
+                  <Text className="text-base font-black text-green-700">
+                    {toRupiah(Math.max(0, totalOrder - partialAmount))}
+                  </Text>
+                </View>
+              </>
+            );
+          })()}
           <View className="flex-row justify-between mt-2">
             <Text className="text-xs text-gray-400">Metode Pembayaran</Text>
             <Text className="text-xs font-bold text-gray-700 uppercase">
@@ -255,9 +287,9 @@ export default function OrderDetailWidget() {
             <Text className="text-xs text-gray-400">Status Pembayaran</Text>
             <Text
               className="text-xs font-bold"
-              style={{ color: order?.payment_status === "paid" ? "#16a34a" : "#f97316" }}
+              style={{ color: (order?.payment_status === "paid" || order?.payment_method === "wallet_payment" || order?.payment_method === "wallet") ? "#16a34a" : "#f97316" }}
             >
-              {order?.payment_status === "paid" ? "Lunas" : "Belum Dibayar"}
+              {(order?.payment_status === "paid" || order?.payment_method === "wallet_payment" || order?.payment_method === "wallet") ? "Lunas" : "Belum Dibayar"}
             </Text>
           </View>
         </View>

@@ -357,6 +357,13 @@ export default function CategoryView() {
     <View className="flex-1 bg-white">
       {/* Top Header */}
       <View className={`bg-white border-b border-gray-100 px-3 py-2 flex-row items-center justify-between z-50 ${Platform.OS === 'web' ? 'pt-4' : 'pt-12'}`}>
+        
+        <TouchableOpacity 
+          onPress={() => navigation.goBack()}
+          className="w-9 h-9 items-center justify-center bg-gray-50 rounded-full"
+        >
+          <Ionicons name="arrow-back" size={20} color="#374151" />
+        </TouchableOpacity>
 
         <View className="flex-1 mx-2 relative">
           <TouchableOpacity activeOpacity={1} className="flex-row items-center bg-gray-100 rounded-full py-1.5 px-3.5 h-9">
@@ -568,7 +575,7 @@ export default function CategoryView() {
         </TouchableOpacity>
       </Modal>
 
-      <FloatingFreeDeliveryProgress />
+      <FloatingFreeDeliveryProgress isCategory={true} />
 
       <TimeslotModal
         isOpen={showModal}

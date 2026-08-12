@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Animated,
 } from "react-native";
 import { Image } from "expo-image";
 import { useNavigation } from "@react-navigation/native";
@@ -15,17 +16,54 @@ import { path_product_img, orderDetail } from "../../../config/enpoints";
 import { post } from "../../../data/api";
 
 const statusConfig = {
-  pending: { label: "Menunggu Pembayaran", icon: "clock", color: "#f97316", bg: "#fff7ed", iconColor: "#ea580c" },
-  confirmed: { label: "Pesanan Dikonfirmasi", icon: "check-circle", color: "#6366f1", bg: "#eef2ff", iconColor: "#4f46e5" },
-  processing: { label: "Sedang Diproses", icon: "box-open", color: "#10b981", bg: "#ecfdf5", iconColor: "#059669" },
-  packaging: { label: "Sedang Dikemas", icon: "box", color: "#0ea5e9", bg: "#f0f9ff", iconColor: "#0284c7" },
-  out_for_delivery: { label: "Dalam Pengiriman", icon: "motorcycle", color: "#3b82f6", bg: "#eff6ff", iconColor: "#2563eb" },
-  completed: { label: "Pesanan Selesai", icon: "check", color: "#16a34a", bg: "#f0fdf4", iconColor: "#15803d" },
-  delivered: { label: "Pesanan Terkirim", icon: "home", color: "#16a34a", bg: "#f0fdf4", iconColor: "#15803d" },
-  canceled: { label: "Pesanan Dibatalkan", icon: "times-circle", color: "#ef4444", bg: "#fef2f2", iconColor: "#dc2626" },
+  pending: { label: "Pending", color: "#f97316", bg: "#fff7ed", border: "#fed7aa", icon: "clock", iconColor: "#ea580c" },
+  confirmed: { label: "Dikonfirmasi", color: "#6366f1", bg: "#eef2ff", border: "#c7d2fe", icon: "check-circle", iconColor: "#4f46e5" },
+  processing: { label: "Diproses", color: "#10b981", bg: "#ecfdf5", border: "#a7f3d0", icon: "box", iconColor: "#059669" },
+  packaging: { label: "Packaging", color: "#0ea5e9", bg: "#f0f9ff", border: "#bae6fd", icon: "box-open", iconColor: "#0284c7" },
+  out_for_delivery: { label: "Diperjalanan", color: "#8b5cf6", bg: "#f5f3ff", border: "#ddd6fe", icon: "truck", iconColor: "#7c3aed" },
+  delivered: { label: "Terkirim", color: "#22c55e", bg: "#f0fdf4", border: "#bbf7d0", icon: "home", iconColor: "#16a34a" },
+  returned: { label: "Dikembalikan", color: "#f43f5e", bg: "#fff1f2", border: "#fecdd3", icon: "undo", iconColor: "#e11d48" },
   failed: { label: "Pesanan Gagal", icon: "exclamation-circle", color: "#ef4444", bg: "#fef2f2", iconColor: "#dc2626" },
+  canceled: { label: "Dibatalkan", icon: "times-circle", color: "#6b7280", bg: "#f3f4f6", iconColor: "#4b5563" },
 };
 
+// --- Komponen Skeleton untuk Loading Efek ---
+const OrderSkeleton = () => {
+  const fadeAnim = React.useRef(new Animated.Value(0.4)).current;
+
+  React.useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(fadeAnim, { toValue: 0.4, duration: 800, useNativeDriver: true }),
+      ])
+    ).start();
+  }, [fadeAnim]);
+
+  return (
+    <Animated.View 
+      className="bg-white mx-4 mb-3 rounded-2xl p-3.5 border border-gray-100"
+      style={{ opacity: fadeAnim, shadowColor: "#000", shadowOpacity: 0.02, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 1 }}
+    >
+      <View className="flex-row items-center justify-between mb-3">
+        <View className="flex-row items-center flex-1">
+          <View className="w-8 h-8 rounded-full bg-gray-200 mr-2.5" />
+          <View className="flex-1">
+            <View className="w-24 h-3 bg-gray-200 rounded mb-2" />
+            <View className="w-16 h-2 bg-gray-200 rounded" />
+          </View>
+        </View>
+      </View>
+      <View className="flex-row items-center mb-2.5 space-x-2">
+        {[1, 2, 3].map(i => <View key={i} className="w-11 h-11 bg-gray-200 rounded-xl" />)}
+      </View>
+      <View className="flex-row justify-between items-center pt-2 border-t border-gray-50">
+        <View className="w-16 h-2 bg-gray-200 rounded" />
+        <View className="w-20 h-4 bg-gray-200 rounded" />
+      </View>
+    </Animated.View>
+  );
+};
 
 const toRupiah = (v) => `Rp ${Number(v || 0).toLocaleString("id-ID")}`;
 
@@ -118,13 +156,12 @@ const OrderCard = ({ order }) => {
 };
 
 export default function OrderListWidget() {
-  const { orders, loading, error, fetchOrders } = useContext(OrderContext);
+  const { orders, loading, loadingMore, error, fetchOrders, loadMoreOrders } = React.useContext(OrderContext);
 
   if (loading && orders.length === 0) {
     return (
-      <View className="flex-1 items-center justify-center">
-        <ActivityIndicator size="large" color="#16a34a" />
-        <Text className="text-gray-400 text-sm mt-3">Memuat pesanan...</Text>
+      <View className="flex-1 pt-3">
+        {[1, 2, 3, 4].map(i => <OrderSkeleton key={i} />)}
       </View>
     );
   }
@@ -165,16 +202,32 @@ export default function OrderListWidget() {
     return new Date(b.created_at) - new Date(a.created_at);
   });
 
+  const handleRefresh = () => {
+    fetchOrders(1, true);
+  };
+
+  const renderFooter = () => {
+    if (!loadingMore) return null;
+    return (
+      <View className="py-2">
+        <OrderSkeleton />
+      </View>
+    );
+  };
+
   return (
     <FlatList
       data={sortedOrders}
       keyExtractor={(item) => String(item.id)}
       renderItem={({ item }) => <OrderCard order={item} />}
       contentContainerStyle={{ paddingTop: 12, paddingBottom: 24 }}
+      onEndReached={loadMoreOrders}
+      onEndReachedThreshold={0.5}
+      ListFooterComponent={renderFooter}
       refreshControl={
         <RefreshControl
           refreshing={loading}
-          onRefresh={fetchOrders}
+          onRefresh={handleRefresh}
           colors={["#16a34a"]}
           tintColor="#16a34a"
         />
