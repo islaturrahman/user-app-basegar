@@ -270,13 +270,6 @@ export default function ChatCsView() {
         <View className={`bg-white border-b border-gray-100 px-4 py-3 flex-row items-center z-10 shadow-sm ${Platform.OS === 'android' ? 'mt-8' : ''}`}
     
         >
-          <TouchableOpacity 
-            onPress={() => navigation.goBack()}
-            className="w-8 h-8 rounded-full items-center justify-center mr-2"
-          >
-            <Ionicons name="chevron-back" size={24} color="#4b5563" />
-          </TouchableOpacity>
-
           <View className="flex-row items-center">
             <View className="relative">
               <View className="w-10 h-10 rounded-full bg-green-600 items-center justify-center shadow-sm">

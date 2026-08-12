@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState, useRef } from "react";
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, FlatList, Platform, Dimensions } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, FlatList, Platform, Dimensions, Animated } from "react-native";
 import ImageWithSkeleton from "../../../components/ImageWithSkeleton";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
@@ -38,13 +38,27 @@ const ProductDetails = () => {
   const [showModal, setShowModal] = useState(false);
   const [pendingProduct, setPendingProduct] = useState(null);
 
+  const [isReady, setIsReady] = useState(false);
+  const slideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
+
+  useEffect(() => {
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setIsReady(true);
+    });
+  }, []);
+
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
       const response = await fetch(`${base_url}${categoryEndpoint}`);
       if (!response.ok) return [];
       return response.json();
-    }
+    },
+    enabled: isReady,
   });
 
   const { data: relatedProducts = [] } = useQuery({
@@ -55,7 +69,8 @@ const ProductDetails = () => {
       return (model && typeof model.getProducts === 'function') 
         ? model.getProducts() 
         : (Array.isArray(model) ? model : []);
-    }
+    },
+    enabled: isReady,
   });
 
   const { data: product, isLoading: loadingProduct } = useQuery({
@@ -67,7 +82,7 @@ const ProductDetails = () => {
       const targetProduct = Array.isArray(data) ? data[0] : data;
       return targetProduct;
     },
-    enabled: !!id
+    enabled: !!id && isReady
   });
 
   const otherProducts = relatedProducts.slice(0, 4);
@@ -169,15 +184,29 @@ const ProductDetails = () => {
     setPendingProduct(null);
   };
 
-  if (!product) {
-    return (
-      <View className="flex-1 bg-black/60 items-center justify-center">
-        <View className="bg-white p-6 rounded-2xl shadow-xl items-center">
+  const renderLoadingState = () => (
+    <View className="flex-1 bg-black/60 pt-10">
+      <TouchableOpacity 
+        style={{ flex: 1 }} 
+        onPress={() => navigation.goBack()} 
+        activeOpacity={1}
+      />
+      <Animated.View 
+        style={{ flex: 11, transform: [{ translateY: slideAnim }] }} 
+        className="bg-white w-full rounded-t-[10px] overflow-hidden flex-col shadow-2xl"
+      >
+        <View className="flex-1 items-center justify-center bg-white rounded-t-[10px]">
           <ActivityIndicator size="large" color="#15803d" />
-          <Text className="text-sm font-medium mt-3 text-gray-500">Loading details...</Text>
+          <Text className="text-sm font-medium mt-3 text-gray-500">
+            {!isReady ? "Menyiapkan tampilan..." : "Memuat detail produk..."}
+          </Text>
         </View>
-      </View>
-    );
+      </Animated.View>
+    </View>
+  );
+
+  if (!isReady || !product) {
+    return renderLoadingState();
   }
 
   const cartItem = cart?.find(item => item.product_id === product.id);
@@ -216,24 +245,21 @@ const ProductDetails = () => {
       />
       
       {/* Bottom Sheet Container */}
-      <View style={{ flex: 11 }} className="bg-white w-full rounded-t-[10px] overflow-hidden flex-col shadow-2xl">
-        
+      <Animated.View 
+        style={{ flex: 11, transform: [{ translateY: slideAnim }] }} 
+        className="bg-white w-full rounded-t-[10px] overflow-hidden flex-col shadow-2xl"
+      >
         {/* Drag handle */}
         <View className="w-full items-center py-3 bg-white z-30 border-b border-gray-50">
           <View className="w-14 h-1 bg-gray-300 rounded-full" />
         </View>
 
-        <FlatList
+        <ScrollView
           className="flex-1"
           showsVerticalScrollIndicator={false}
           bounces={false}
-          data={activeTab === "serupa" ? similarProducts : frequentlyBought}
-          keyExtractor={(p) => p.id.toString()}
-          numColumns={3}
-          columnWrapperStyle={{ paddingHorizontal: 16, justifyContent: 'flex-start' }}
           contentContainerStyle={{ paddingBottom: 80, backgroundColor: 'white' }}
-          ListHeaderComponent={
-            <>
+        >
           
           {/* Product Image Carousel */}
           <View className="w-full aspect-square bg-gray-100 relative">
@@ -253,7 +279,7 @@ const ProductDetails = () => {
                 keyExtractor={(_, idx) => idx.toString()}
                 renderItem={({ item: img }) => (
                   <Image
-                    source={img.startsWith('http') || img.startsWith('data:') ? img : `${path_product_img}/${img}`}
+                    source={img?.startsWith('http') || img?.startsWith('data:') ? img : `${path_product_img}/${img}`}
                     style={{ width, height: width }}
                     contentFit="cover"
                     transition={200}
@@ -367,8 +393,8 @@ const ProductDetails = () => {
               keyExtractor={(p) => p.id.toString()}
               renderItem={({ item: p }) => {
                 const inCart = cart?.find(item => item.product_id === p.id);
-                const pImage = p.image ? (Array.isArray(p.image) ? p.image[0] : (typeof p.image === 'string' && p.image.startsWith('[') ? JSON.parse(p.image)[0] : p.image)) : "def.png";
-                const displayImage = pImage.startsWith('http') ? pImage : `${path_product_img}/${pImage}`;
+                const pImage = p.image ? (Array.isArray(p.image) ? p.image[0] : (typeof p.image === 'string' && p.image.startsWith('[') ? (JSON.parse(p.image)[0] || "def.png") : p.image)) : "def.png";
+                const displayImage = pImage?.startsWith('http') ? pImage : `${path_product_img}/${pImage}`;
                 
                 return (
                   <View className="w-32 bg-white rounded-xl border border-gray-100 p-2 mr-3 justify-between shadow-sm">
@@ -410,67 +436,17 @@ const ProductDetails = () => {
               }}
             />
           </View>
-
-          {/* Tab Section */}
-          <View className="px-4 pt-4 bg-white pb-2">
-            <View className="flex-row border-b border-gray-100 mb-2">
-              <TouchableOpacity onPress={() => setActiveTab("serupa")} className="pb-2 mr-6 relative">
-                <Text className={`text-xs font-bold ${activeTab === "serupa" ? "text-green-800" : "text-gray-400"}`}>Produk Serupa</Text>
-                {activeTab === "serupa" && <View className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-800" />}
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setActiveTab("bareng")} className="pb-2 relative">
-                <Text className={`text-xs font-bold ${activeTab === "bareng" ? "text-green-800" : "text-gray-400"}`}>Sering Dibeli Bareng</Text>
-                {activeTab === "bareng" && <View className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-800" />}
-              </TouchableOpacity>
-            </View>
-
-            </View>
-            </>
-          }
-          renderItem={({ item: p }) => {
-            const inCart = cart?.find(item => item.product_id === p.id);
-            const pImage = p.image ? (Array.isArray(p.image) ? p.image[0] : (typeof p.image === 'string' && p.image.startsWith('[') ? JSON.parse(p.image)[0] : p.image)) : "def.png";
-            const displayImage = pImage.startsWith('http') ? pImage : `${path_product_img}/${pImage}`;
-            const itemWidth = (width - 40) / 3;
-            
-            return (
-              <View style={{ width: itemWidth, marginRight: 8, marginBottom: 8, backgroundColor: 'white', borderRadius: 12, borderWidth: 1, borderColor: '#f3f4f6', padding: 8, justifyContent: 'space-between', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 }}>
-                <TouchableOpacity onPress={() => handleNavigateAndClose("/p/:id", { id: p.id })}>
-                  <View className="w-full aspect-square bg-gray-50 rounded-lg overflow-hidden relative">
-                    <Image source={displayImage} className="w-full h-full" contentFit="cover" transition={200} />
-                  </View>
-                  <View className="mt-1">
-                    <Text className="text-[9px] font-bold text-gray-800" numberOfLines={2}>{p.name}</Text>
-                    <Text className="text-[8px] text-gray-400 mt-0.5">{p.capacity ? `${p.capacity} ${p.unit}` : "500g"}</Text>
-                  </View>
-                </TouchableOpacity>
-                
-                <View className="flex-row justify-between items-center mt-2 pt-1 border-t border-gray-50">
-                  <Text className="text-[9px] font-bold text-gray-800">{toRupiah(p.price)}</Text>
-                  {inCart ? (
-                    <View className="flex-row items-center bg-green-50 rounded-full px-1 border border-green-200">
-                      <TouchableOpacity className="w-4 h-4 rounded-full bg-green-700 items-center justify-center" onPress={() => minQuantity(p.id)}>
-                        <Text className="text-white text-[9px] font-bold">-</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity className="w-4 h-4 rounded-full bg-green-700 items-center justify-center ml-1" onPress={() => addQuantity(p.id)}>
-                        <Text className="text-white text-[9px] font-bold">+</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <TouchableOpacity className="w-5 h-5 rounded-full bg-green-700 items-center justify-center" onPress={() => handleAddProduct(p)}>
-                      <Text className="text-white text-xs font-bold">+</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-            );
-          }}
-        />
+        </ScrollView>
 
         {/* Sticky Footer Action Bar */}
         <View className="w-full bg-white border-t border-gray-200 py-3 px-4 flex-row items-center justify-between shadow-lg" style={{ paddingBottom: Platform.OS === 'android' ? 35 : 21 }}>
           <TouchableOpacity 
-            onPress={() => {
+            onPress={async () => {
+              const token = await AsyncStorage.getItem("authToken");
+              if (!token) {
+                handleNavigateAndClose("/login");
+                return;
+              }
               const p_image = (product.image && product.image.length > 0) ? `${path_product_img}/${product.image[0]}` : "";
               const productEmbed = `[PRODUCT:id=${product.id}|name=${encodeURIComponent(product.name)}|price=${product.price}|image=${encodeURIComponent(p_image)}|stock=${product.total_stock}] `;
               handleNavigateAndClose("/cs", { productEmbed });
@@ -481,7 +457,14 @@ const ProductDetails = () => {
           </TouchableOpacity>
 
           <TouchableOpacity 
-            onPress={() => handleNavigateAndClose("/cart")}
+            onPress={async () => {
+              const token = await AsyncStorage.getItem("authToken");
+              if (!token) {
+                handleNavigateAndClose("/login");
+                return;
+              }
+              handleNavigateAndClose("/cart");
+            }}
             className="w-11 h-11 rounded-xl bg-gray-50 border border-gray-200 items-center justify-center ml-2 relative"
           >
             <Ionicons name="cart-outline" size={20} color="#4b5563" />
@@ -513,10 +496,9 @@ const ProductDetails = () => {
               <Text className="text-white font-bold text-sm">Tambah Ke Keranjang</Text>
             </TouchableOpacity>
           )}
-
         </View>
 
-      </View>
+      </Animated.View>
       
       {snackbar.show && (
         <Snackbar type="alert" message={snackbar.message} />

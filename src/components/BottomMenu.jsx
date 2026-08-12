@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { View, Text, TouchableOpacity, Platform, Keyboard } from 'react-native';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
-import { FontAwesome5 } from '@expo/vector-icons';
+import { Home, LayoutGrid, MessageSquare, ShoppingCart, User } from 'lucide-react-native';
 import CartContext from '../context/CartContext';
 import ChatContext from '../context/ChatContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -75,10 +75,10 @@ export function BottomMenu() {
         onPress={() => navigation.navigate('/')}
         className="flex-1 items-center py-1"
       >
-        <FontAwesome5 
-          name="home" 
-          size={20} 
-          color={isActive('/') ? activeColor : inactiveColor} 
+        <Home 
+          size={22} 
+          color={isActive('/') ? activeColor : inactiveColor}
+          strokeWidth={isActive('/') ? 2.5 : 2}
         />
         <Text 
           className={`text-[10px] font-semibold mt-1 tracking-wide ${isActive('/') ? 'text-green-700' : 'text-gray-500'}`}
@@ -92,10 +92,10 @@ export function BottomMenu() {
         onPress={() => navigation.navigate('/categories/:category_id', { category_id: 1 })}
         className="flex-1 items-center py-1"
       >
-        <FontAwesome5 
-          name="th-large" 
-          size={20} 
-          color={isActive('/categories/:category_id') ? activeColor : inactiveColor} 
+        <LayoutGrid 
+          size={22} 
+          color={isActive('/categories/:category_id') ? activeColor : inactiveColor}
+          strokeWidth={isActive('/categories/:category_id') ? 2.5 : 2}
         />
         <Text 
           className={`text-[10px] font-semibold mt-1 tracking-wide ${isActive('/categories/:category_id') ? 'text-green-700' : 'text-gray-500'}`}
@@ -109,10 +109,10 @@ export function BottomMenu() {
         onPress={() => handleProtectedNavigation('/cs')}
         className="flex-1 items-center py-1 relative"
       >
-        <FontAwesome5 
-          name="comments" 
-          size={20} 
-          color={isActive('/cs') ? activeColor : inactiveColor} 
+        <MessageSquare 
+          size={22} 
+          color={isActive('/cs') ? activeColor : inactiveColor}
+          strokeWidth={isActive('/cs') ? 2.5 : 2}
         />
         {globalUnreadCount > 0 && (
           <View className="absolute top-0 right-4 bg-red-500 rounded-full w-4 h-4 items-center justify-center border border-white">
@@ -131,10 +131,10 @@ export function BottomMenu() {
         onPress={() => handleProtectedNavigation('/cart')}
         className="flex-1 items-center py-1 relative"
       >
-        <FontAwesome5 
-          name="shopping-cart" 
-          size={20} 
-          color={isActive('/cart') ? activeColor : inactiveColor} 
+        <ShoppingCart 
+          size={22} 
+          color={isActive('/cart') ? activeColor : inactiveColor}
+          strokeWidth={isActive('/cart') ? 2.5 : 2}
         />
         {cart && cart.length > 0 && (
           <View className="absolute top-0 right-4 bg-red-500 rounded-full w-4 h-4 items-center justify-center border border-white">
@@ -153,10 +153,10 @@ export function BottomMenu() {
         onPress={() => handleProtectedNavigation('/account')}
         className="flex-1 items-center py-1"
       >
-        <FontAwesome5 
-          name="user" 
-          size={20} 
-          color={isActive('/account') ? activeColor : inactiveColor} 
+        <User 
+          size={22} 
+          color={isActive('/account') ? activeColor : inactiveColor}
+          strokeWidth={isActive('/account') ? 2.5 : 2}
         />
         <Text 
           className={`text-[10px] font-semibold mt-1 tracking-wide ${isActive('/account') ? 'text-green-700' : 'text-gray-500'}`}

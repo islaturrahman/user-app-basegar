@@ -6,10 +6,19 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Router from './src/config/router';
 import { BottomMenu } from './src/components/BottomMenu';
 import NetworkMonitor from './src/components/NetworkMonitor';
-import { registerForPushNotificationsAsync } from './src/services/PushNotificationService';
 
 import GlobalProvider from './src/provider/GlobalProvider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+import { useFonts } from 'expo-font';
+import { 
+  Poppins_300Light, 
+  Poppins_400Regular, 
+  Poppins_500Medium, 
+  Poppins_600SemiBold, 
+  Poppins_700Bold, 
+  Poppins_800ExtraBold 
+} from '@expo-google-fonts/poppins';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -47,11 +56,24 @@ const linking = {
 };
 
 export default function App() {
+  let [fontsLoaded] = useFonts({
+    Poppins_300Light,
+    Poppins_400Regular,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+    Poppins_700Bold,
+    Poppins_800ExtraBold,
+  });
+
   useEffect(() => {
     // Dinonaktifkan sementara untuk menghindari error di Expo Go (karena SDK 53+ menghapus dukungan push notification di Expo Go)
     // Jika nanti Anda membuat Development Build (EAS), baris ini bisa diaktifkan kembali.
     // registerForPushNotificationsAsync().then(token => console.log("Init Push Token:", token));
   }, []);
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <QueryClientProvider client={queryClient}>

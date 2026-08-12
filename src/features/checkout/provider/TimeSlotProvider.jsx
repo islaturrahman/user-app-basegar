@@ -39,7 +39,7 @@ const TimeSlotProvider = ({ children }) => {
       if (dateslotIndex === "today") {
         let today = new Date().toISOString().split("T")[0];
         await AsyncStorage.setItem("dateslot", today);
-      } else if (dateslotIndex == 1) {
+      } else if (dateslotIndex === "tomorrow") {
         let tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         await AsyncStorage.setItem("dateslot", tomorrow.toISOString().split("T")[0]);
@@ -254,7 +254,7 @@ const TimeSlotProvider = ({ children }) => {
       }
 
       newDateSlots.push({
-        index: i === 0 ? "today" : i.toString(),
+        index: i === 0 ? "today" : "tomorrow",
         date: date.toLocaleDateString("id-ID", {
           weekday: "long",
           day: "numeric",

@@ -122,7 +122,7 @@ const FloatingFreeDeliveryProgress = ({ isCart = false }) => {
       
       {isCart && showConfetti && (
         <ConfettiCannon
-          count={150}
+          count={Platform.OS === 'android' ? 45 : 80}
           origin={{ x: width / 2, y: 0 }}
           autoStart={true}
           fadeOut={true}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useCallback, useRef } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Dimensions, Modal, Image as RNImage, RefreshControl, Platform } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Dimensions, Modal, Image as RNImage, RefreshControl, Platform, InteractionManager } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Image } from "expo-image";
@@ -132,6 +132,14 @@ export default function CategoryView() {
   
   const [showModal, setShowModal] = useState(false);
   const [pendingProduct, setPendingProduct] = useState(null);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      setIsReady(true);
+    });
+    return () => task.cancel();
+  }, []);
 
   useEffect(() => {
     const loadMasterTimeSlots = async () => {
@@ -172,7 +180,8 @@ export default function CategoryView() {
       const res = await fetch(`${base_url}${category_endpoint}`);
       if (!res.ok) throw new Error("Network response was not ok");
       return res.json();
-    }
+    },
+    enabled: isReady
   });
 
   const { data: subCategories = [] } = useQuery({
@@ -182,7 +191,7 @@ export default function CategoryView() {
       if (!res.ok) return [];
       return res.json();
     },
-    enabled: !!category_id
+    enabled: !!category_id && isReady
   });
 
   const targetFetchId = (active !== false && typeof subCategories[active]?.id === "number")
@@ -216,7 +225,7 @@ export default function CategoryView() {
       return (lastPage && lastPage.length === 10) ? allPages.length + 1 : undefined;
     },
     initialPageParam: 1,
-    enabled: !!targetFetchId
+    enabled: !!targetFetchId && isReady
   });
 
   const fetchedProducts = fetchedData ? fetchedData.pages.flat() : [];
@@ -298,7 +307,9 @@ export default function CategoryView() {
     });
   };
 
-  const filteredProducts = getFilteredProducts();
+  const filteredProducts = React.useMemo(() => {
+    return getFilteredProducts();
+  }, [fetchedProducts, active, displaySubcategories, masterTimeSlots]);
 
   const handleAddProduct = useCallback(async (product) => {
     const token = await AsyncStorage.getItem("authToken");
@@ -346,12 +357,6 @@ export default function CategoryView() {
     <View className="flex-1 bg-white">
       {/* Top Header */}
       <View className={`bg-white border-b border-gray-100 px-3 py-2 flex-row items-center justify-between z-50 ${Platform.OS === 'web' ? 'pt-4' : 'pt-12'}`}>
-        <TouchableOpacity 
-          onPress={() => navigation.goBack()} 
-          className="items-center justify-center w-8 h-8 rounded-full"
-        >
-          <Ionicons name="arrow-back" size={24} color="#374151" />
-        </TouchableOpacity>
 
         <View className="flex-1 mx-2 relative">
           <TouchableOpacity activeOpacity={1} className="flex-row items-center bg-gray-100 rounded-full py-1.5 px-3.5 h-9">
@@ -454,6 +459,7 @@ export default function CategoryView() {
             ref={flashListRef}
             key={'category-products'}
             data={loadingProducts ? [] : filteredProducts}
+            extraData={cart}
             keyExtractor={(item, idx) => (item.id || idx).toString()}
             numColumns={2}
             estimatedItemSize={250}

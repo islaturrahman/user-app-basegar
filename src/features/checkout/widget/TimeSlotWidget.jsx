@@ -63,7 +63,7 @@ const TimeSlotWidget = () => {
 
   const renderDeliveryDateLabel = () => {
       if (!deliveryDate || deliveryDate === "today") return "Hari ini";
-      if (deliveryDate === "1") return "Besok";
+      if (deliveryDate === "tomorrow") return "Besok";
       return "Tanggal Terpilih";
   };
 

@@ -27,12 +27,21 @@ const CartProvider = ({ children }) => {
       await AsyncStorage.setItem("cart", JSON.stringify(updatedCart));
       return updatedCart;
     },
+    onMutate: async (updatedCart) => {
+      // Optimistic update: langsung ubah state agar UI langsung responsif
+      await queryClient.cancelQueries({ queryKey: ["cart"] });
+      const previousCart = queryClient.getQueryData(["cart"]);
+      queryClient.setQueryData(["cart"], updatedCart);
+      return { previousCart };
+    },
     onSuccess: (updatedCart) => {
       console.log("Cart updated successfully, items:", updatedCart?.length);
-      queryClient.setQueryData(["cart"], updatedCart);
     },
-    onError: (error) => {
+    onError: (error, newCart, context) => {
       console.error("Cart mutation error:", error);
+      if (context?.previousCart) {
+        queryClient.setQueryData(["cart"], context.previousCart);
+      }
     }
   });
 

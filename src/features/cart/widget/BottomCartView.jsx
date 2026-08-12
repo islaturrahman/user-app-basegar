@@ -122,7 +122,7 @@ const BottomCartView = () => {
       {showConfetti && (
         <View style={{ position: 'absolute', top: -Dimensions.get('window').height, left: 0, right: 0, bottom: 0 }} pointerEvents="none">
           <ConfettiCannon
-            count={150}
+            count={Platform.OS === 'android' ? 45 : 80}
             origin={{ x: width / 2, y: 0 }}
             autoStart={true}
             fadeOut={true}

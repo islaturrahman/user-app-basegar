@@ -1,5 +1,5 @@
-import { createContext, React, useContext, useState, useRef } from "react";
-import { Linking, Modal, TouchableOpacity, Text, View, ActivityIndicator, Platform } from "react-native";
+import { createContext, React, useContext, useState, useRef, useEffect } from "react";
+import { Linking, TouchableOpacity, Text, View, ActivityIndicator, Platform, Animated, Dimensions, StyleSheet, BackHandler } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { WebView } from "react-native-webview";
@@ -17,6 +17,41 @@ const OrderPlaceProvider = ({ children }) => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const navigationRef = useRef(null);
   const orderDataRef = useRef(null);
+  
+  const [isModalReady, setIsModalReady] = useState(false);
+  const slideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Efek untuk menganimasikan bottom sheet saat modal terbuka
+  useEffect(() => {
+    if (showPaymentModal) {
+      setIsModalReady(false);
+      slideAnim.setValue(Dimensions.get('window').height);
+      fadeAnim.setValue(0);
+      
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        })
+      ]).start(() => {
+        setIsModalReady(true);
+      });
+
+      const onBackPress = () => {
+        closePaymentModal();
+        return true;
+      };
+      const backHandler = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      return () => backHandler.remove();
+    }
+  }, [showPaymentModal]);
 
   const validationLocalStorage = async () => {
     const cart = await AsyncStorage.getItem("cart");
@@ -178,20 +213,34 @@ const OrderPlaceProvider = ({ children }) => {
 
   const clearLocalStorage = async () => {
     const keys = [
-      "cart", "dateslot", "timeslotId", "order_amount", "distance",
+      "dateslot", "timeslotId", "order_amount", "distance",
       "payment_method", "dateslotId", "lastEndTimeFetchToday", "timeslot", "delivery_charge",
     ];
     await AsyncStorage.multiRemove(keys);
   };
 
   const closePaymentModal = () => {
-    setShowPaymentModal(false);
-    if (navigationRef.current && orderDataRef.current) {
-      navigationRef.current.navigate("/o/:id/success", {
-        ...orderDataRef.current,
-        is_error: false,
-      });
-    }
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: Dimensions.get('window').height,
+        duration: 250,
+        useNativeDriver: true,
+      })
+    ]).start(() => {
+      setShowPaymentModal(false);
+      setIsModalReady(false);
+      if (navigationRef.current && orderDataRef.current) {
+        navigationRef.current.navigate("/o/:id/success", {
+          ...orderDataRef.current,
+          is_error: false,
+        });
+      }
+    });
   };
 
   const handleShouldStartLoadWithRequest = (request) => {
@@ -221,14 +270,16 @@ const OrderPlaceProvider = ({ children }) => {
       {children}
       
       {/* Payment WebView Bottom Sheet / Modal */}
-      <Modal
-        visible={showPaymentModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={closePaymentModal}
-      >
-        <View className="flex-1 bg-black/60 justify-end">
-          <View className="bg-white rounded-t-3xl overflow-hidden h-[85%] shadow-lg w-full max-w-[600px] self-center">
+      {showPaymentModal && (
+        <View style={[StyleSheet.absoluteFill, { zIndex: 9999, elevation: 9999 }]} pointerEvents="box-none">
+          <Animated.View style={[{ opacity: fadeAnim }, StyleSheet.absoluteFill]} className="bg-black/60">
+             <TouchableOpacity style={{ flex: 1 }} onPress={closePaymentModal} activeOpacity={1} />
+          </Animated.View>
+          <View className="flex-1 justify-end" pointerEvents="box-none">
+            <Animated.View 
+              style={{ transform: [{ translateY: slideAnim }] }}
+              className="bg-white rounded-t-3xl overflow-hidden h-[85%] shadow-lg w-full max-w-[600px] self-center"
+            >
             {/* Header */}
             <View className="flex-row justify-between items-center px-5 py-4 border-b border-gray-100 bg-white shadow-sm">
               <View>
@@ -244,7 +295,12 @@ const OrderPlaceProvider = ({ children }) => {
             </View>
             
             {/* WebView */}
-            {paymentUrl ? (
+            {!isModalReady ? (
+              <View className="flex-1 items-center justify-center bg-white">
+                <ActivityIndicator size="large" color="#15803d" />
+                <Text className="text-sm font-medium mt-3 text-gray-500">Menyiapkan pembayaran...</Text>
+              </View>
+            ) : paymentUrl ? (
               Platform.OS === 'web' ? (
                 <View style={{ flex: 1, backgroundColor: 'white' }}>
                   <iframe 
@@ -274,9 +330,10 @@ const OrderPlaceProvider = ({ children }) => {
             ) : null}
             
             <SafeAreaView className="bg-white" />
-          </View>
+          </Animated.View>
         </View>
-      </Modal>
+      </View>
+      )}
     </OrderPlaceContext.Provider>
   );
 };

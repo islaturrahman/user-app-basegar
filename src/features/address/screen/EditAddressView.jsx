@@ -197,6 +197,31 @@ const EditAddressView = () => {
         {/* Main Address Form */}
         <View className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm mb-6">
 
+          {/* Tipe Alamat (Label) */}
+          <Text className="text-xs font-bold text-gray-700 mb-2">Simpan Sebagai *</Text>
+          <View className="flex-row space-x-3 mb-4">
+            <TouchableOpacity 
+              onPress={() => setAddressType("home")}
+              className={`flex-1 py-2 rounded-lg border flex-row items-center justify-center space-x-2 ${addressType === "home" ? "bg-green-50 border-green-600" : "bg-white border-gray-200"}`}
+            >
+              <FontAwesome5 name="home" size={12} color={addressType === "home" ? "#16a34a" : "#6b7280"} />
+              <Text className={`text-xs font-bold ${addressType === "home" ? "text-green-700" : "text-gray-600"}`}>Rumah</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => setAddressType("office")}
+              className={`flex-1 py-2 rounded-lg border flex-row items-center justify-center space-x-2 ${addressType === "office" ? "bg-green-50 border-green-600" : "bg-white border-gray-200"}`}
+            >
+              <FontAwesome5 name="building" size={12} color={addressType === "office" ? "#16a34a" : "#6b7280"} />
+              <Text className={`text-xs font-bold ${addressType === "office" ? "text-green-700" : "text-gray-600"}`}>Kantor</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => setAddressType("other")}
+              className={`flex-1 py-2 rounded-lg border flex-row items-center justify-center space-x-2 ${addressType === "other" ? "bg-green-50 border-green-600" : "bg-white border-gray-200"}`}
+            >
+              <FontAwesome5 name="map-marker-alt" size={12} color={addressType === "other" ? "#16a34a" : "#6b7280"} />
+              <Text className={`text-xs font-bold ${addressType === "other" ? "text-green-700" : "text-gray-600"}`}>Lainnya</Text>
+            </TouchableOpacity>
+          </View>
 
           <Text className="text-xs font-bold text-gray-700 mb-1">Alamat Lengkap *</Text>
           <TextInput

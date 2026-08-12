@@ -77,7 +77,7 @@ export default function Router() {
       <Stack.Screen 
         name="/p/:id" 
         component={ProductDetails} 
-        options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }}
+        options={{ presentation: 'transparentModal', animation: 'fade' }}
       />
       <Stack.Screen name="/login" component={Login} />
       <Stack.Screen name="/signup" component={PlaceholderScreen} />

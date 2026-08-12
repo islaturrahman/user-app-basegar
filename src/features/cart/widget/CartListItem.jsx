@@ -7,7 +7,7 @@ import { toRupiah } from "../../../components/Helper";
 import { path_product_img } from "../../../config/enpoints";
 
 const CartListItem = () => {
-  const { cart, removeFromCart, addQuantity, minQuantity, toggleSelectItem, toggleSelectAll, updateItemSelection } = useContext(CartContext);
+  const { cart, removeFromCart, addQuantity, minQuantity, toggleSelectItem, toggleSelectAll, updateItemSelection, clearCart } = useContext(CartContext);
   const productsContext = useContext(ProductsContext);
   const deliveryDate = productsContext?.deliveryDate || "tomorrow";
   const setDeliveryDate = productsContext?.setDeliveryDate || (() => {});
@@ -75,7 +75,7 @@ const CartListItem = () => {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
     return {
-      id: i === 0 ? "today" : i.toString(),
+      id: i === 0 ? "today" : "tomorrow",
       label: i === 0 ? "Hari ini" : "Besok",
       dateStr: d.toLocaleDateString("id-ID", { day: "numeric", month: "short" })
     }
@@ -111,6 +111,17 @@ const CartListItem = () => {
   const handleSelectAll = () => {
     const validIds = readyToProcess.map(item => item.product_id);
     updateItemSelection(validIds, !isAllValidSelected);
+  };
+
+  const confirmDeleteSelected = () => {
+    Alert.alert(
+      "Hapus Produk",
+      "Yakin ingin menghapus semua produk yang ditandai?",
+      [
+        { text: "Batal", style: "cancel" },
+        { text: "Hapus", onPress: clearCart, style: "destructive" }
+      ]
+    );
   };
 
   const renderProductItem = (item, index, isCheckboxDisabled) => {
@@ -269,9 +280,14 @@ const CartListItem = () => {
                 <View className="flex-row items-center">
                   <Checkbox checked={isAllValidSelected} onPress={handleSelectAll} />
                   <Text className="font-bold text-gray-800">
-                    Produk Siap Diproses {deliveryDate === "today" ? "(Hari ini)" : "(Besok)"}
+                    Pilih Semua {deliveryDate === "today" ? "(Hari ini)" : "(Besok)"}
                   </Text>
                 </View>
+                {readyToProcess.some(item => item.is_selected !== false) && (
+                  <TouchableOpacity onPress={confirmDeleteSelected} className="px-2 py-1">
+                    <Text className="text-red-500 font-bold text-sm">Hapus</Text>
+                  </TouchableOpacity>
+                )}
               </View>
               {readyToProcess.length > 0 ? (
                 readyToProcess.map((item, index) => renderProductItem(item, index, false))

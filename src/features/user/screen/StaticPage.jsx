@@ -24,15 +24,16 @@ export default function StaticPage() {
     <html>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
         <style>
           body {
-            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: 'Poppins', sans-serif;
             padding: 16px;
             color: #374151;
             line-height: 1.6;
             font-size: 15px;
           }
-          h1, h2, h3 { color: #111827; }
+          h1, h2, h3 { color: #111827; font-weight: 600; }
           a { color: #15803d; text-decoration: none; }
         </style>
       </head>
@@ -43,7 +44,7 @@ export default function StaticPage() {
   `;
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <View className="flex-1 bg-white">
       <AppBar title={title || "Informasi"} />
       <View className="flex-1">
         {config ? (
@@ -68,6 +69,6 @@ export default function StaticPage() {
           </View>
         )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
