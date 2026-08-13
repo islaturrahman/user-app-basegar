@@ -11,6 +11,7 @@ import FlashSaleView from "../features/product/screen/FlashSaleView";
 import CategoryView from "../features/category/screen/CategoryView";
 import Login from "../features/auth/screen/Login";
 import Account from "../features/user/screen/Account";
+import EditProfileView from "../features/user/screen/EditProfileView";
 import AddressView from "../features/address/screen/AddressView";
 import AddAddressView from "../features/address/screen/AddAddressView";
 import EditAddressView from "../features/address/screen/EditAddressView";
@@ -106,6 +107,7 @@ export default function Router() {
       {isAuthenticated ? (
         <>
           <Stack.Screen name="/account" component={Account} />
+          <Stack.Screen name="/edit-profile" component={EditProfileView} />
           <Stack.Screen name="/cs" component={ChatCsView} />
           <Stack.Screen name="/address" component={AddressView} />
           <Stack.Screen name="/address/pick" component={PickAddressView} />

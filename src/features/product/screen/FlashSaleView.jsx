@@ -148,7 +148,9 @@ export default function FlashSaleView() {
         </TouchableOpacity>
 
         <View className="flex-1 mx-2">
-          <Text className="text-sm font-bold text-gray-800 text-center">Flash Sale</Text>
+          <Text className="text-sm font-bold text-gray-800 text-center">
+            {route.params?.title || "Flash Sale"}
+          </Text>
         </View>
 
         <TouchableOpacity onPress={() => navigation.navigate("/cart")} className="items-center justify-center w-9 h-9 rounded-full relative">

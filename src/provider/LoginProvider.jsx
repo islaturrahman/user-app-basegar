@@ -1,4 +1,4 @@
-import { isNumberOrEmail } from "../component/helper";
+import { isNumberOrEmail } from "../components/Helper";
 import { login } from "../config/enpoints"
 import { post } from "../data/api"
 

@@ -133,12 +133,7 @@ const ProductDetails = () => {
 
     const isMainProduct = product && p.id === product.id;
     if (p.variations && p.variations.length > 0) {
-      if (isMainProduct) {
-        if (!selectedVariation) {
-          triggerSnackbar("Silakan pilih variasi produk terlebih dahulu.");
-          return;
-        }
-      } else {
+      if (!isMainProduct) {
         handleNavigateAndClose("/p/:id", { id: p.id });
         return;
       }
@@ -223,9 +218,11 @@ const ProductDetails = () => {
   }
 
   const cartItem = cart?.find(item => item.product_id === product.id);
+  
   const price = selectedVariation 
     ? Number(selectedVariation.price) 
     : (Number(product.price ?? product.unit_price ?? 0) || 0);
+    
   const originalPrice = price ? Math.round(price * 1.25) : 0;
 
   let productImages = [];

@@ -125,7 +125,7 @@ const SearchProducts = ({ onClose }) => {
           // ── SEARCH RESULTS ──
           <View className="mt-5 pb-8">
             <Text className="text-base font-bold text-gray-700 mb-4">
-              {searchResults.length} hasil untuk "{searchQuery}"
+              {searchResults.length} hasil untuk &quot;{searchQuery}&quot;
             </Text>
             {searchResults.length > 0 ? (
               searchResults.map((p) => (

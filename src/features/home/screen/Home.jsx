@@ -144,14 +144,9 @@ export default function Home() {
   } = useQuery({
     queryKey: ['flashDeals'],
     queryFn: async () => {
-      try {
-        const response = await get(flash_deal);
-        if (response && response.flash_deals) return response.flash_deals;
-        return [];
-      } catch (err) {
-        console.log(err);
-        return [];
-      }
+      const response = await get(flash_deal);
+      if (response && response.flash_deals) return response.flash_deals;
+      return [];
     }
   });
 
@@ -250,7 +245,7 @@ export default function Home() {
                   return (
                     <TouchableOpacity
                       key={deal.id}
-                      onPress={() => navigation.navigate("/flash-sale/:id", { id: deal.id })}
+                      onPress={() => navigation.navigate("/flash-sale/:id", { id: deal.id, title: deal.title })}
                       className="w-[48%] h-32 bg-white rounded-xl mb-3 shadow-sm overflow-hidden"
                     >
                       <Image

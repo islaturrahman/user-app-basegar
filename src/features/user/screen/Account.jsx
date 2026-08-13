@@ -220,7 +220,7 @@ export default function Account() {
                   <TextShimmerLoad />
                 </View>
               )}
-              <TouchableOpacity className="flex-row items-center">
+              <TouchableOpacity onPress={() => navigation.navigate('/edit-profile')} className="flex-row items-center">
                 <Text className="text-xs font-poppins-regular text-green-100 mr-2">Ubah Akun</Text>
                 <Pencil size={12} color="#dcfce3" strokeWidth={2} />
               </TouchableOpacity>

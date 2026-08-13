@@ -1,6 +1,9 @@
-import './output.css';
+import { Platform } from 'react-native';
+if (Platform.OS === 'web') {
+  require('./output.css');
+}
 import React, { useEffect } from 'react';
-import { View, Platform, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Router from './src/config/router';
@@ -27,7 +30,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
-      cacheTime: 1000 * 60 * 10, // 10 minutes
+      gcTime: 1000 * 60 * 10, // 10 minutes
       retry: 2,
     },
   },
@@ -45,6 +48,7 @@ const linking = {
       '/terms-and-conditions': 'terms-and-conditions',
       '/about-us': 'about-us',
       '/account': 'account',
+      '/edit-profile': 'edit-profile',
       '/cs': 'cs',
       '/address': 'address',
       '/checkout': 'checkout',
@@ -59,7 +63,7 @@ const linking = {
 };
 
 export default function App() {
-  let [fontsLoaded] = useFonts({
+  let [fontsLoaded, fontError] = useFonts({
     Poppins_300Light,
     Poppins_400Regular,
     Poppins_500Medium,
@@ -69,12 +73,12 @@ export default function App() {
   });
 
   useEffect(() => {
-    // Dinonaktifkan sementara untuk menghindari error di Expo Go (karena SDK 53+ menghapus dukungan push notification di Expo Go)
-    // Jika nanti Anda membuat Development Build (EAS), baris ini bisa diaktifkan kembali.
-    // registerForPushNotificationsAsync().then(token => console.log("Init Push Token:", token));
-  }, []);
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded && !fontError) {
     return null;
   }
 

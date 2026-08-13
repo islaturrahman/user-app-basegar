@@ -265,6 +265,7 @@ export default function OrderDetailWidget() {
                     </Text>
                   </View>
                 )}
+
                 <View
                   className="flex-row justify-between pt-2 mt-1"
                   style={{ borderTopWidth: 1, borderColor: "#f3f4f6" }}

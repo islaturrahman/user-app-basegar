@@ -114,6 +114,7 @@ const PaymentWidget = ({ config }) => {
           const customerProvider = new CustomerProvider();
           const userModel = await customerProvider.getCustomer();
           let userToUse = null;
+          let balance = 0;
           if (userModel) {
             const userData = userModel.getUser();
             if (userData && (userData.id || userData.f_name)) {
@@ -128,10 +129,20 @@ const PaymentWidget = ({ config }) => {
               }
             }
           }
-          const isPartial = await AsyncStorage.getItem("is_partial");
+          balance = parseFloat(userToUse?.wallet_balance) || 0;
+          
+          let isPartialVal = await AsyncStorage.getItem("is_partial");
+          
+          // Jika saldo 0, otomatis nonaktifkan partial payment agar tidak nyangkut
+          if (balance <= 0 && isPartialVal === "1") {
+            isPartialVal = "0";
+            await AsyncStorage.setItem("is_partial", "0");
+            setUseWallet(false);
+          }
+
           DeviceEventEmitter.emit('walletToggled', { 
-            useWallet: isPartial === "1", 
-            balance: parseFloat(userToUse?.wallet_balance) || 0 
+            useWallet: isPartialVal === "1", 
+            balance: balance 
           });
         } catch (e) {
           console.error("Gagal update wallet:", e);

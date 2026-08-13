@@ -1,4 +1,4 @@
-import { banners } from '../config/enpoints.jsx';
+import { banners } from '../config/enpoints.js';
 import { StateManager } from './stateManager.js';
 
 const initialProductsState = {

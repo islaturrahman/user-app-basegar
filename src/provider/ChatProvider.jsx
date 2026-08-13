@@ -3,8 +3,8 @@ import ChatContext from '../context/ChatContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { get } from '../data/api';
 import { get_admin_message } from '../config/enpoints';
-import { Audio } from 'expo-av';
 import { Vibration, DeviceEventEmitter } from 'react-native';
+
 
 export default function ChatProvider({ children }) {
   const [messages, setMessages] = useState([]);
@@ -76,35 +76,10 @@ export default function ChatProvider({ children }) {
 
   const playSound = async () => {
     try {
-      if (!Audio || !Audio.Sound) {
-        return;
-      }
-      
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-        shouldDuckAndroid: true,
-      });
-
-      // Trigger physical shake/vibration
+      // Trigger physical vibration (expo-av removed - deprecated in SDK 54)
       Vibration.vibrate(400);
-
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" },
-        { shouldPlay: true }
-      );
-      
-      sound.setOnPlaybackStatusUpdate(async (status) => {
-        if (status.didJustFinish) {
-          try {
-            await sound.unloadAsync();
-          } catch (e) {
-            console.log("Error unloading sound:", e);
-          }
-        }
-      });
     } catch (error) {
-      console.log("Error playing chat sound:", error);
+      console.log("Error playing notification vibration:", error);
     }
   };
 

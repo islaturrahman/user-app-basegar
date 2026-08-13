@@ -19,7 +19,7 @@ const TimeslotModal = ({ isOpen, onClose, onConfirm, product }) => {
               Melewati Batas Waktu
             </Text>
             <Text className="text-sm text-gray-600 mb-1 text-center">
-              Waktu pengiriman "Hari Ini" untuk produk{' '}
+              Waktu pengiriman &quot;Hari Ini&quot; untuk produk{' '}
               <Text className="font-bold">{product?.name}</Text> telah habis (Batas: {product?.time_slot?.end_time}).
             </Text>
             <Text className="text-sm font-semibold text-red-600 text-center">
