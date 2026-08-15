@@ -6,6 +6,7 @@ import AddressProvider from '../features/address/provider/AddressProvider';
 import MapsProvider from './MapsProvider';
 import DeliveryProvider from '../features/delivery/provider/DeliveryProvider';
 import ChatProvider from './ChatProvider';
+import TimeSlotProvider from '../features/checkout/provider/TimeSlotProvider';
 
 export default function GlobalProvider({ children }) {
   return (
@@ -15,9 +16,11 @@ export default function GlobalProvider({ children }) {
             <MapsProvider>
               <DeliveryProvider>
                 <CartProvider>
-                  <ChatProvider>
-                    {children}
-                  </ChatProvider>
+                  <TimeSlotProvider>
+                    <ChatProvider>
+                      {children}
+                    </ChatProvider>
+                  </TimeSlotProvider>
                 </CartProvider>
               </DeliveryProvider>
             </MapsProvider>

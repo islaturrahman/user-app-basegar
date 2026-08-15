@@ -11,7 +11,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import ProductsContext from "../../../context/ProductsContext";
 import { ConfigContext } from "../../../provider/ConfigProvider";
 import CartContext from "../../../context/CartContext";
-// import DeliveryProvider from "../../delivery/provider/DeliveryProvider";
+import { TimeSlotContext } from "../../../features/checkout/provider/TimeSlotProvider";
 import * as SplashScreen from 'expo-splash-screen';
 
 import HeroWidget from "../widget/HeroWidget";
@@ -24,6 +24,7 @@ import FloatingFreeDeliveryProgress from "../../cart/widget/FloatingFreeDelivery
 
 // import { BottomMenu } from "../../../component/bottom_menu";
 import TimeslotModal from "../../../components/TimeslotModal";
+import { BlankBottomSheet } from "../../../components/BlankBottomSheet";
 
 // Helper (Assumes a basic helper is available)
 import { path_offer_img, flash_deal } from "../../../config/enpoints";
@@ -58,10 +59,19 @@ export default function Home() {
   const { fetchProducts, deliveryDate, setDeliveryDate } = useContext(ProductsContext);
   const { config } = useContext(ConfigContext);
   const { cart, getCart, addToCart, addQuantity, minQuantity } = useContext(CartContext);
+  const { isGlobalExpired } = useContext(TimeSlotContext) || {};
+
+  // Jika slot hari ini sudah habis, paksa ke besok
+  useEffect(() => {
+    if (isGlobalExpired && deliveryDate === "today") {
+      setDeliveryDate("tomorrow");
+    }
+  }, [isGlobalExpired]);
 
   // page state removed as useInfiniteQuery handles it
   const [showModal, setShowModal] = useState(false);
   const [pendingProduct, setPendingProduct] = useState(null);
+  const [showScheduleInfo, setShowScheduleInfo] = useState(false);
 
 
 
@@ -185,24 +195,28 @@ export default function Home() {
       >
         <View className="bg-white flex-1" style={{ minHeight: '100%' }}>
           {/* Scrollable Blue Extension containing Date Toggle */}
-          <View className="bg-green-700 rounded-b-[24px] px-4 pt-2 pb-5 z-10">
-            <View className="bg-white p-1 rounded-full flex-row items-center h-12 relative">
+          <View className="bg-green-700 rounded-b-[24px] px-4 pt-2 pb-5 z-10 flex-row items-center">
+            <View className="bg-white p-1 rounded-full flex-row items-center h-12 relative flex-1">
               <View 
                 className="absolute top-1 bottom-1 w-[49%] bg-green-50 rounded-full border border-green-100"
                 style={{ left: deliveryDate === "today" ? '1%' : '50%' }}
               />
               
+              {/* TAB HARI INI */}
               <TouchableOpacity 
-                onPress={() => setDeliveryDate("today")}
+                onPress={() => !isGlobalExpired && setDeliveryDate("today")}
+                disabled={!!isGlobalExpired}
                 className="flex-1 flex-row items-center justify-center h-full z-10"
+                style={{ opacity: isGlobalExpired ? 0.4 : 1 }}
               >
-                <Text className="text-lg mr-1.5">🚚</Text>
+                <Text className="text-lg mr-1.5">{isGlobalExpired ? '🚫' : '🚚'}</Text>
                 <View className="justify-center">
-                  <Text className={`text-[11.5px] ${deliveryDate === "today" ? "font-extrabold text-gray-800" : "font-semibold text-gray-500"}`}>Hari ini</Text>
-                  <Text className="text-[8px] text-gray-400 font-medium">Batas pkl 17:00</Text>
+                  <Text className={`text-[11.5px] ${deliveryDate === "today" && !isGlobalExpired ? "font-extrabold text-gray-800" : "font-semibold text-gray-400"}`}>Hari ini</Text>
+                  <Text className="text-[8px] text-gray-400 font-medium">{isGlobalExpired ? 'Sudah tutup' : 'Batas pkl 17:00'}</Text>
                 </View>
               </TouchableOpacity>
               
+              {/* TAB BESOK */}
               <TouchableOpacity 
                 onPress={() => setDeliveryDate("tomorrow")}
                 className="flex-1 flex-row items-center justify-center h-full z-10"
@@ -214,6 +228,12 @@ export default function Home() {
                 </View>
               </TouchableOpacity>
             </View>
+            <TouchableOpacity 
+              onPress={() => setShowScheduleInfo(true)} 
+              className="ml-3 w-10 h-10 bg-white/20 rounded-full items-center justify-center"
+            >
+              <FontAwesome5 name="info-circle" size={20} color="white" />
+            </TouchableOpacity>
           </View>
 
           <View className="py-3">
@@ -281,6 +301,44 @@ export default function Home() {
         onConfirm={confirmTimeslotModal}
         product={pendingProduct}
       />
+
+      <BlankBottomSheet isOpen={showScheduleInfo} onClose={() => setShowScheduleInfo(false)}>
+        <View className="p-6">
+          <View className="flex-row items-center justify-between mb-5">
+            <Text className="text-xl font-bold text-gray-800">Informasi Pengiriman</Text>
+            <TouchableOpacity onPress={() => setShowScheduleInfo(false)} className="w-8 h-8 bg-gray-100 rounded-full items-center justify-center">
+              <FontAwesome5 name="times" size={14} color="#666" />
+            </TouchableOpacity>
+          </View>
+          
+          <View className="mb-5 bg-green-50 p-4 rounded-xl border border-green-100">
+            <View className="flex-row items-center mb-2">
+              <Text className="text-xl mr-2">🚚</Text>
+              <Text className="text-lg font-bold text-gray-800">Hari Ini</Text>
+            </View>
+            <Text className="text-gray-600 text-sm leading-relaxed">
+              Pesanan yang dibuat dengan jadwal "Hari Ini" akan dikirimkan pada hari yang sama. Pastikan Anda memesan sebelum batas waktu yang ditentukan yaitu pukul 17:00.
+            </Text>
+          </View>
+
+          <View className="mb-6 bg-blue-50 p-4 rounded-xl border border-blue-100">
+            <View className="flex-row items-center mb-2">
+              <Text className="text-xl mr-2">📅</Text>
+              <Text className="text-lg font-bold text-gray-800">Besok</Text>
+            </View>
+            <Text className="text-gray-600 text-sm leading-relaxed">
+              Pesanan dengan jadwal "Besok" akan diproses dan dikirimkan pada keesokan harinya di pagi hari. Sangat cocok untuk Anda yang ingin merencanakan belanjaan lebih awal tanpa terburu-buru.
+            </Text>
+          </View>
+
+          <TouchableOpacity 
+            onPress={() => setShowScheduleInfo(false)}
+            className="w-full bg-green-600 py-3.5 rounded-xl items-center shadow-sm"
+          >
+            <Text className="text-white font-bold text-base">Mengerti</Text>
+          </TouchableOpacity>
+        </View>
+      </BlankBottomSheet>
     </View>
   );
 }

@@ -6,6 +6,7 @@ import { get } from "../../../data/api";
 export const TimeSlotContext = createContext({
   timeslot: [],
   dateslot: [],
+  isGlobalExpired: false,
   getTimeSlot: async () => {},
   getTimeSlotByIndex: async () => {},
   selectedTimeSlot: async () => {},
@@ -15,6 +16,7 @@ export const TimeSlotContext = createContext({
 const TimeSlotProvider = ({ children }) => {
   const [timeslot, setTimeSlot] = useState([]);
   const [dateslot, setDateSlot] = useState([]);
+  const [isGlobalExpired, setIsGlobalExpired] = useState(false);
 
   const fetchTimeSlot = async () => {
     try {
@@ -267,6 +269,28 @@ const TimeSlotProvider = ({ children }) => {
 
     setDateSlot(newDateSlots);
     setTimeSlot([]);
+
+    // Hitung isGlobalExpired: apakah (now + prepTime) sudah lewat end_time terakhir?
+    if (timeSlots.length > 0) {
+      const maxEndTime = timeSlots.reduce((max, slot) =>
+        slot.end_time && slot.end_time > max ? slot.end_time : max, "00:00:00");
+      const prepTimeMinutes = Number(config.time_slot_preparation_time) || 60;
+      const nowCheck = new Date();
+      const dayBefore = nowCheck.getDate();
+      nowCheck.setMinutes(nowCheck.getMinutes() + prepTimeMinutes);
+      const dayAfter = nowCheck.getDate();
+      // Jika hari berganti setelah tambah prepTime, sudah pasti expired
+      if (dayAfter !== dayBefore) {
+        setIsGlobalExpired(true);
+      } else {
+        const hh = nowCheck.getHours().toString().padStart(2, "0");
+        const mm = nowCheck.getMinutes().toString().padStart(2, "0");
+        setIsGlobalExpired(`${hh}:${mm}:00` > maxEndTime);
+      }
+    } else {
+      setIsGlobalExpired(false);
+    }
+
   };
 
   const selectedTimeSlot = async (timeslotObj) => {
@@ -284,6 +308,7 @@ const TimeSlotProvider = ({ children }) => {
   const value = {
     timeslot,
     dateslot,
+    isGlobalExpired,
     getTimeSlot,
     getTimeSlotByIndex,
     selectedTimeSlot,

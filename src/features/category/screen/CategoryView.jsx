@@ -133,6 +133,7 @@ export default function CategoryView() {
   const [showModal, setShowModal] = useState(false);
   const [pendingProduct, setPendingProduct] = useState(null);
   const [isReady, setIsReady] = useState(false);
+  const { isGlobalExpired } = useContext(TimeSlotContext) || {};
 
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
@@ -294,7 +295,7 @@ export default function CategoryView() {
       if (p.time_slot && typeof p.time_slot === 'string') {
         try { p.time_slot = JSON.parse(p.time_slot); } catch (e) { p.time_slot = null; }
       }
-      if (Array.isArray(p.time_slot)) p.time_slot = p.time_slot[0];
+      // Jika time_slot adalah array, biarkan utuh — ProductCard/CartListItem handle array
 
       // If time_slot is still null/undefined but time_slot_id exists, hydrate it!
       if (!p.time_slot && p.time_slot_id && masterTimeSlots && masterTimeSlots.length > 0) {
@@ -349,9 +350,10 @@ export default function CategoryView() {
         onAdd={handleAddProduct}
         onIncrease={addQuantity}
         onDecrease={minQuantity}
+        isGlobalExpired={isGlobalExpired}
       />
     );
-  }, [getCart, handlePressProduct, handleAddProduct, addQuantity, minQuantity]);
+  }, [getCart, handlePressProduct, handleAddProduct, addQuantity, minQuantity, isGlobalExpired]);
 
   return (
     <View className="flex-1 bg-white">

@@ -1,16 +1,25 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import ProductsContext from "../../../context/ProductsContext";
 import { View, Text, Image as RNImage, TouchableOpacity, ScrollView, Alert, Platform } from "react-native";
 import { Image } from "expo-image";
 import CartContext from "../../../context/CartContext";
 import { toRupiah } from "../../../components/Helper";
 import { path_product_img } from "../../../config/enpoints";
+import { TimeSlotContext } from "../../checkout/provider/TimeSlotProvider";
 
 const CartListItem = () => {
   const { cart, removeFromCart, addQuantity, minQuantity, toggleSelectItem, toggleSelectAll, updateItemSelection, clearCart } = useContext(CartContext);
   const productsContext = useContext(ProductsContext);
   const deliveryDate = productsContext?.deliveryDate || "tomorrow";
   const setDeliveryDate = productsContext?.setDeliveryDate || (() => {});
+  const { isGlobalExpired } = useContext(TimeSlotContext) || {};
+
+  // Jika slot hari ini sudah habis, paksa ke besok
+  useEffect(() => {
+    if (isGlobalExpired && deliveryDate === "today") {
+      setDeliveryDate("tomorrow");
+    }
+  }, [isGlobalExpired]);
   
   // Gunakan state dari CartContext agar tersinkron dengan perhitungan total
   const isAllSelected = cart?.length > 0 && cart.every(item => item.is_selected !== false);
@@ -114,20 +123,28 @@ const CartListItem = () => {
   };
 
   const confirmDeleteSelected = () => {
-    Alert.alert(
-      "Hapus Produk",
-      "Yakin ingin menghapus semua produk yang ditandai?",
-      [
-        { text: "Batal", style: "cancel" },
-        { text: "Hapus", onPress: clearCart, style: "destructive" }
-      ]
-    );
+    if (Platform.OS === 'web') {
+      const confirm = window.confirm("Yakin ingin menghapus semua produk yang ditandai?");
+      if (confirm) {
+        clearCart();
+      }
+    } else {
+      Alert.alert(
+        "Hapus Produk",
+        "Yakin ingin menghapus semua produk yang ditandai?",
+        [
+          { text: "Batal", style: "cancel" },
+          { text: "Hapus", onPress: clearCart, style: "destructive" }
+        ]
+      );
+    }
   };
 
   const renderProductItem = (item, index, isCheckboxDisabled) => {
     const slots = parseTimeSlots(item.time_slot);
     const isExpiredFresh = isProductExpired(item, currentTime);
-    let dayLabel = isExpiredFresh && slots.length > 0 ? "Besok" : "Hari ini";
+    let dayLabel = (isGlobalExpired || (isExpiredFresh && slots.length > 0)) ? "Besok" : "Hari ini";
+
     
     let displaySlot = null;
     if (slots.length > 0) {
@@ -240,6 +257,8 @@ const CartListItem = () => {
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {dates.map((item) => {
                 const isSelected = deliveryDate === item.id;
+                const isTodayChip = item.id === "today";
+                const isDisabled = isTodayChip && !!isGlobalExpired;
                 
                 // Hitung jumlah produk yang secara murni bisa diproses HARI INI 
                 // tanpa terpengaruh oleh state `deliveryDate` saat ini
@@ -249,22 +268,32 @@ const CartListItem = () => {
                 return (
                   <TouchableOpacity 
                     key={item.id}
-                    onPress={() => handleSelectDate(item.id)}
+                    onPress={() => !isDisabled && handleSelectDate(item.id)}
+                    disabled={isDisabled}
                     className={`mr-3 p-3 rounded-xl border flex items-center justify-center min-w-[100px] ${
-                      isSelected ? 'border-green-600 bg-green-50 shadow-sm' : 'border-gray-200 bg-white'
+                      isDisabled
+                        ? 'border-gray-100 bg-gray-50'
+                        : isSelected ? 'border-green-600 bg-green-50 shadow-sm' : 'border-gray-200 bg-white'
                     }`}
+                    style={{ opacity: isDisabled ? 0.5 : 1 }}
                   >
-                    <Text className={`font-bold text-sm ${isSelected ? 'text-green-800' : 'text-gray-700'}`}>
-                      {item.label}
+                    <Text className={`font-bold text-sm ${
+                      isDisabled ? 'text-gray-400' : isSelected ? 'text-green-800' : 'text-gray-700'
+                    }`}>
+                      {isTodayChip && isGlobalExpired ? '🚫 ' : ''}{item.label}
                     </Text>
-                    <Text className={`text-xs mt-1 ${isSelected ? 'text-green-700' : 'text-gray-500'}`}>
-                      {item.dateStr}
+                    <Text className={`text-xs mt-1 ${
+                      isDisabled ? 'text-gray-300' : isSelected ? 'text-green-700' : 'text-gray-500'
+                    }`}>
+                      {isTodayChip && isGlobalExpired ? 'Sudah tutup' : item.dateStr}
                     </Text>
-                    <View className={`mt-2 px-2 py-0.5 rounded-full ${isSelected ? 'bg-green-200' : 'bg-gray-100'}`}>
-                      <Text className={`text-[10px] font-medium ${isSelected ? 'text-green-800' : 'text-gray-600'}`}>
-                        {availableCount} produk
-                      </Text>
-                    </View>
+                    {!isDisabled && (
+                      <View className={`mt-2 px-2 py-0.5 rounded-full ${isSelected ? 'bg-green-200' : 'bg-gray-100'}`}>
+                        <Text className={`text-[10px] font-medium ${isSelected ? 'text-green-800' : 'text-gray-600'}`}>
+                          {availableCount} produk
+                        </Text>
+                      </View>
+                    )}
                   </TouchableOpacity>
                 )
               })}

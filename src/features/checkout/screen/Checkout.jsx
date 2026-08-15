@@ -7,7 +7,6 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import AppBar from "../../../components/AppBar";
 import { ConfigContext } from "../../../provider/ConfigProvider";
 import AddressCheckoutWidget from "../widget/AddressCheckoutWidget";
-import TimeSlotProvider from "../provider/TimeSlotProvider";
 import TimeSlotWidget from "../widget/TimeSlotWidget";
 import PaymentProvider from "../provider/PaymentProvider";
 import PaymentWidget from "../widget/PaymentWidget";
@@ -72,9 +71,7 @@ const Checkout = () => {
             </View>
 
             {/* Delivery Time Slot Section */}
-            <TimeSlotProvider>
-              <TimeSlotWidget />
-            </TimeSlotProvider>
+            <TimeSlotWidget />
 
             {/* Payment Method Section */}
             <PaymentProvider>

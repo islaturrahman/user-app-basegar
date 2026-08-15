@@ -13,6 +13,8 @@ import NetworkMonitor from './src/components/NetworkMonitor';
 import GlobalProvider from './src/provider/GlobalProvider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as SplashScreen from 'expo-splash-screen';
+import * as ImagePicker from 'expo-image-picker';
+
 
 SplashScreen.preventAutoHideAsync();
 

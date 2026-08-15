@@ -13,7 +13,8 @@ const ProductCard = ({
   onPress, 
   onAdd, 
   onIncrease, 
-  onDecrease 
+  onDecrease,
+  isGlobalExpired = false
 }) => {
   let p = { ...product };
   
@@ -64,7 +65,7 @@ const ProductCard = ({
   }
 
   let dayLabel = "Hari ini";
-  if (hasFresh && allSlotsExpired) {
+  if (isGlobalExpired || (hasFresh && allSlotsExpired)) {
       dayLabel = "Besok";
   }
 
@@ -95,7 +96,7 @@ const ProductCard = ({
     <View className={containerClass}>
       <TouchableOpacity onPress={() => onPress(p.id)} className="relative">
         <View className="items-center mb-2 w-full aspect-square rounded-xl overflow-hidden bg-gray-50 relative">
-          {p.time_slot && p.time_slot.start_time && (
+          {hasFresh && (
             <View className="absolute top-0 left-0 bg-green-700/90 px-2 py-1 rounded-br-xl z-10 flex-col shadow-sm">
               <Text className="text-[9px] font-black uppercase tracking-wider text-yellow-300">Fresh</Text>
             </View>

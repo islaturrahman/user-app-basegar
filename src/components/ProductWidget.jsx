@@ -10,10 +10,12 @@ import { ProductModel } from "../models/ProductModel";
 import Snackbar from "./Snackbar";
 import ProductsContext from "../context/ProductsContext";
 import TimeslotModal from "./TimeslotModal";
+import { TimeSlotContext } from "../features/checkout/provider/TimeSlotProvider";
 
 const ProductWidget = ({ products, type = "grid" }) => {
   const { addToCart, getCart, addQuantity, minQuantity } = useContext(CartContext) || {};
   const { deliveryDate, setDeliveryDate } = useContext(ProductsContext) || {};
+  const { isGlobalExpired } = useContext(TimeSlotContext) || {};
   const [variant, setVariant] = useState("");
   const [variation, setVariation] = useState([]);
   const [snackbar, setSnackbar] = useState({ show: false, message: "" });
@@ -21,6 +23,7 @@ const ProductWidget = ({ products, type = "grid" }) => {
   const [pendingProduct, setPendingProduct] = useState(null);
 
   const navigation = useNavigation();
+
 
   const handleProductClick = (productId) => {
     navigation.navigate('/p/:id', { id: productId });
@@ -152,7 +155,7 @@ const ProductWidget = ({ products, type = "grid" }) => {
         }
         
         let dayLabel = "Hari ini";
-        if (slots.length > 0 && isSlotExpired) {
+        if (isGlobalExpired || (slots.length > 0 && isSlotExpired)) {
           dayLabel = "Besok";
         }
 

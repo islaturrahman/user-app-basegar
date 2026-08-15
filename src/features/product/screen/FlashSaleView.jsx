@@ -28,6 +28,7 @@ export default function FlashSaleView() {
   const [masterTimeSlots, setMasterTimeSlots] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [pendingProduct, setPendingProduct] = useState(null);
+  const { isGlobalExpired } = useContext(TimeSlotContext) || {};
 
   useEffect(() => {
     const loadMasterTimeSlots = async () => {
@@ -86,7 +87,7 @@ export default function FlashSaleView() {
       if (p.time_slot && typeof p.time_slot === 'string') {
         try { p.time_slot = JSON.parse(p.time_slot); } catch (e) { p.time_slot = null; }
       }
-      if (Array.isArray(p.time_slot)) p.time_slot = p.time_slot[0];
+      // Jika time_slot adalah array, biarkan utuh — ProductCard/CartListItem handle array
       if (!p.time_slot && p.time_slot_id && masterTimeSlots && masterTimeSlots.length > 0) {
         const foundTimeslot = masterTimeSlots.find(t => String(t.id) === String(p.time_slot_id));
         if (foundTimeslot) p.time_slot = foundTimeslot;
@@ -135,9 +136,10 @@ export default function FlashSaleView() {
         onAdd={handleAddProduct}
         onIncrease={addQuantity}
         onDecrease={minQuantity}
+        isGlobalExpired={isGlobalExpired}
       />
     );
-  }, [getCart, handlePressProduct, handleAddProduct, addQuantity, minQuantity]);
+  }, [getCart, handlePressProduct, handleAddProduct, addQuantity, minQuantity, isGlobalExpired]);
 
   return (
     <View className="flex-1 bg-white">
