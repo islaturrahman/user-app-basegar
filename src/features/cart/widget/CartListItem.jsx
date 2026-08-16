@@ -31,49 +31,66 @@ const CartListItem = () => {
   const currentMinutes = now.getMinutes().toString().padStart(2, "0");
   const currentTime = `${currentHours}:${currentMinutes}:00`;
 
-  const parseTimeSlots = (time_slot) => {
-    let slots = [];
-    if (typeof time_slot === 'string') {
-      try {
-        const parsed = JSON.parse(time_slot);
-        slots = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : []);
-      } catch (e) {
-        slots = [];
-      }
-    } else if (Array.isArray(time_slot)) {
-      slots = time_slot;
-    } else if (time_slot) {
-      slots = [time_slot];
-    }
-    return slots;
-  };
-
-  const isProductExpired = (item, currentTime) => {
-    const slots = parseTimeSlots(item.time_slot);
-    if (slots.length === 0) return false;
-    let allExpired = true;
-    slots.forEach(slot => {
-        if (slot && slot.end_time) {
-            if (currentTime <= slot.end_time) {
-                allExpired = false;
-            }
+  const processedCart = React.useMemo(() => {
+    if (!cart) return [];
+    
+    return cart.map(item => {
+      let slots = [];
+      const time_slot = item.time_slot;
+      if (typeof time_slot === 'string') {
+        try {
+          const parsed = JSON.parse(time_slot);
+          slots = Array.isArray(parsed) ? parsed : (parsed ? [parsed] : []);
+        } catch (e) {
+          slots = [];
         }
+      } else if (Array.isArray(time_slot)) {
+        slots = time_slot;
+      } else if (time_slot) {
+        slots = [time_slot];
+      }
+      
+      let isExpiredFresh = false;
+      if (slots.length > 0) {
+        let allExpired = true;
+        for (let i = 0; i < slots.length; i++) {
+          const slot = slots[i];
+          if (slot && slot.end_time) {
+             if (currentTime <= slot.end_time) {
+                 allExpired = false;
+                 break;
+             }
+          }
+        }
+        isExpiredFresh = allExpired;
+      }
+      
+      return {
+        ...item,
+        _parsedSlots: slots,
+        _isExpiredFresh: isExpiredFresh
+      };
     });
-    return allExpired;
-  };
+  }, [cart, currentTime]);
 
   const handleSelectDate = (dateId) => {
-    const expiredIds = cart?.filter(item => isProductExpired(item, currentTime)).map(item => item.product_id) || [];
-    
     if (dateId === "today") {
-      // Uncheck produk yang tidak bisa diproses hari ini
-      if (expiredIds.length > 0) {
-        updateItemSelection(expiredIds, false);
+      // Uncheck produk yang tidak bisa diproses hari ini (yang saat ini masih ter-check)
+      const expiredIdsToUncheck = processedCart
+        .filter(item => item._isExpiredFresh && item.is_selected !== false)
+        .map(item => item.product_id);
+        
+      if (expiredIdsToUncheck.length > 0) {
+        updateItemSelection(expiredIdsToUncheck, false);
       }
     } else {
-      // Re-check produk yang sebelumnya kadaluarsa karena dipindahkan ke besok
-      if (expiredIds.length > 0) {
-        updateItemSelection(expiredIds, true);
+      // Re-check produk yang sebelumnya kadaluarsa karena dipindahkan ke besok (yang saat ini sedang uncheck)
+      const expiredIdsToCheck = processedCart
+        .filter(item => item._isExpiredFresh && item.is_selected === false)
+        .map(item => item.product_id);
+        
+      if (expiredIdsToCheck.length > 0) {
+        updateItemSelection(expiredIdsToCheck, true);
       }
     }
     setDeliveryDate(dateId);
@@ -105,15 +122,13 @@ const CartListItem = () => {
     </TouchableOpacity>
   );
 
-  const readyToProcess = cart?.filter(item => {
-    const isExpiredFresh = isProductExpired(item, currentTime);
-    return !(deliveryDate === "today" && isExpiredFresh);
-  }) || [];
+  const readyToProcess = processedCart.filter(item => {
+    return !(deliveryDate === "today" && item._isExpiredFresh);
+  });
 
-  const cannotProcess = cart?.filter(item => {
-    const isExpiredFresh = isProductExpired(item, currentTime);
-    return (deliveryDate === "today" && isExpiredFresh);
-  }) || [];
+  const cannotProcess = processedCart.filter(item => {
+    return (deliveryDate === "today" && item._isExpiredFresh);
+  });
   
   const isAllValidSelected = readyToProcess.length > 0 && readyToProcess.every(item => item.is_selected !== false);
 
@@ -141,8 +156,8 @@ const CartListItem = () => {
   };
 
   const renderProductItem = (item, index, isCheckboxDisabled) => {
-    const slots = parseTimeSlots(item.time_slot);
-    const isExpiredFresh = isProductExpired(item, currentTime);
+    const slots = item._parsedSlots;
+    const isExpiredFresh = item._isExpiredFresh;
     let dayLabel = (isGlobalExpired || (isExpiredFresh && slots.length > 0)) ? "Besok" : "Hari ini";
 
     
@@ -262,7 +277,7 @@ const CartListItem = () => {
                 
                 // Hitung jumlah produk yang secara murni bisa diproses HARI INI 
                 // tanpa terpengaruh oleh state `deliveryDate` saat ini
-                const todayAvailableCount = cart?.filter(p => !isProductExpired(p, currentTime)).length || 0;
+                const todayAvailableCount = processedCart.filter(p => !p._isExpiredFresh).length;
                 const availableCount = item.id === "today" ? todayAvailableCount : totalProducts;
                 
                 return (

@@ -11,12 +11,14 @@ export const TimeSlotContext = createContext({
   getTimeSlotByIndex: async () => {},
   selectedTimeSlot: async () => {},
   clearTimeSlotId: async () => {},
+  maxEndTime: "17:00",
 });
 
 const TimeSlotProvider = ({ children }) => {
   const [timeslot, setTimeSlot] = useState([]);
   const [dateslot, setDateSlot] = useState([]);
   const [isGlobalExpired, setIsGlobalExpired] = useState(false);
+  const [maxEndTime, setMaxEndTime] = useState("17:00");
 
   const fetchTimeSlot = async () => {
     try {
@@ -27,6 +29,18 @@ const TimeSlotProvider = ({ children }) => {
       }
     } catch (error) {
       console.error("Error fetching timeslots:", error);
+      // Fallback ke cache jika jaringan gagal
+      const cached = await AsyncStorage.getItem("timeslot");
+      if (cached) {
+        try {
+          await updateDateSlotsWithTime(JSON.parse(cached));
+        } catch(e) {
+          await updateDateSlotsWithTime([]);
+        }
+      } else {
+        // Mencegah infinite loading skeleton di widget jika API dan cache kosong
+        await updateDateSlotsWithTime([]);
+      }
     }
   };
 
@@ -124,11 +138,13 @@ const TimeSlotProvider = ({ children }) => {
 
           const configStr = await AsyncStorage.getItem("config");
           const config = configStr ? JSON.parse(configStr) : {};
-          const prepTimeMinutes = config.time_slot_preparation_time || 60;
+          const prepTimeMinutes = Number(config.time_slot_preparation_time) || 60;
           
           const now = new Date();
           now.setMinutes(now.getMinutes() + prepTimeMinutes);
-          const bufferedTime = now.toLocaleTimeString("en-GB", { hour12: false });
+          const hh = now.getHours().toString().padStart(2, "0");
+          const mm = now.getMinutes().toString().padStart(2, "0");
+          const bufferedTime = `${hh}:${mm}:00`;
           filteredTimeSlots = filteredTimeSlots.filter(
             (slot) => slot.end_time > bufferedTime
           );
@@ -235,11 +251,13 @@ const TimeSlotProvider = ({ children }) => {
           slotTimeSlots = [];
           isAvailable = false;
         } else {
-          const prepTimeMinutes = config.time_slot_preparation_time || 60;
+          const prepTimeMinutes = Number(config.time_slot_preparation_time) || 60;
 
           const now = new Date();
           now.setMinutes(now.getMinutes() + prepTimeMinutes);
-          const bufferedTime = now.toLocaleTimeString("en-GB", { hour12: false });
+          const hh = now.getHours().toString().padStart(2, "0");
+          const mm = now.getMinutes().toString().padStart(2, "0");
+          const bufferedTime = `${hh}:${mm}:00`;
           
           slotTimeSlots = slotTimeSlots.filter((slot) => slot.end_time > bufferedTime);
           isAvailable = slotTimeSlots.length > 0;
@@ -272,8 +290,13 @@ const TimeSlotProvider = ({ children }) => {
 
     // Hitung isGlobalExpired: apakah (now + prepTime) sudah lewat end_time terakhir?
     if (timeSlots.length > 0) {
-      const maxEndTime = timeSlots.reduce((max, slot) =>
+      const maxEndTimeStr = timeSlots.reduce((max, slot) =>
         slot.end_time && slot.end_time > max ? slot.end_time : max, "00:00:00");
+      
+      if (maxEndTimeStr) {
+        setMaxEndTime(maxEndTimeStr.substring(0, 5));
+      }
+
       const prepTimeMinutes = Number(config.time_slot_preparation_time) || 60;
       const nowCheck = new Date();
       const dayBefore = nowCheck.getDate();
@@ -285,7 +308,7 @@ const TimeSlotProvider = ({ children }) => {
       } else {
         const hh = nowCheck.getHours().toString().padStart(2, "0");
         const mm = nowCheck.getMinutes().toString().padStart(2, "0");
-        setIsGlobalExpired(`${hh}:${mm}:00` > maxEndTime);
+        setIsGlobalExpired(`${hh}:${mm}:00` > maxEndTimeStr);
       }
     } else {
       setIsGlobalExpired(false);
@@ -309,6 +332,7 @@ const TimeSlotProvider = ({ children }) => {
     timeslot,
     dateslot,
     isGlobalExpired,
+    maxEndTime,
     getTimeSlot,
     getTimeSlotByIndex,
     selectedTimeSlot,

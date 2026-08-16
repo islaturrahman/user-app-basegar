@@ -59,7 +59,7 @@ export default function Home() {
   const { fetchProducts, deliveryDate, setDeliveryDate } = useContext(ProductsContext);
   const { config } = useContext(ConfigContext);
   const { cart, getCart, addToCart, addQuantity, minQuantity } = useContext(CartContext);
-  const { isGlobalExpired } = useContext(TimeSlotContext) || {};
+  const { isGlobalExpired, maxEndTime = "17:00" } = useContext(TimeSlotContext) || {};
 
   // Jika slot hari ini sudah habis, paksa ke besok
   useEffect(() => {
@@ -212,7 +212,7 @@ export default function Home() {
                 <Text className="text-lg mr-1.5">{isGlobalExpired ? '🚫' : '🚚'}</Text>
                 <View className="justify-center">
                   <Text className={`text-[11.5px] ${deliveryDate === "today" && !isGlobalExpired ? "font-extrabold text-gray-800" : "font-semibold text-gray-400"}`}>Hari ini</Text>
-                  <Text className="text-[8px] text-gray-400 font-medium">{isGlobalExpired ? 'Sudah tutup' : 'Batas pkl 17:00'}</Text>
+                  <Text className="text-[8px] text-gray-400 font-medium">{isGlobalExpired ? 'Sudah tutup' : `Batas pkl ${maxEndTime}`}</Text>
                 </View>
               </TouchableOpacity>
               
@@ -317,7 +317,7 @@ export default function Home() {
               <Text className="text-lg font-bold text-gray-800">Hari Ini</Text>
             </View>
             <Text className="text-gray-600 text-sm leading-relaxed">
-              Pesanan yang dibuat dengan jadwal "Hari Ini" akan dikirimkan pada hari yang sama. Pastikan Anda memesan sebelum batas waktu yang ditentukan yaitu pukul 17:00.
+              Pesanan yang dibuat dengan jadwal "Hari Ini" akan dikirimkan pada hari yang sama. Pastikan Anda memesan sebelum batas waktu yang ditentukan yaitu pukul {maxEndTime}.
             </Text>
           </View>
 
