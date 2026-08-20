@@ -24,6 +24,9 @@ import ChatCsView from "../features/cs/screen/ChatCsView";
 import StaticPage from "../features/user/screen/StaticPage";
 import VoucherView from "../features/voucher/screen/VoucherView";
 import RefundMethodView from "../features/user/screen/RefundMethodView";
+import LiveListScreen from "../features/live/screen/LiveListScreen";
+import LiveViewerScreen from "../features/live/screen/LiveViewerScreen";
+import LiveProvider from "../features/live/provider/LiveProvider";
 // ... dan lain-lain
 const Stack = createNativeStackNavigator();
 
@@ -67,6 +70,7 @@ export default function Router() {
   // React Navigation handles the state update gracefully.
 
   return (
+    <LiveProvider>
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {/* 
         ========================================================
@@ -98,6 +102,14 @@ export default function Router() {
       <Stack.Screen name="/games" component={PlaceholderScreen} />
       <Stack.Screen name="/games/watermelon-game" component={PlaceholderScreen} />
 
+      {/* Live Stream (public) */}
+      <Stack.Screen name="/live" component={LiveListScreen} />
+      <Stack.Screen 
+        name="/live/:id" 
+        component={LiveViewerScreen}
+        options={{ animation: 'fade' }}
+      />
+
       {/* Rute yang sering diakses dari BottomMenu diletakkan di public jika tidak login (akan diarahkan manual), tapi sekarang diminta pindah ke private */}
       {/* 
         ========================================================
@@ -123,5 +135,7 @@ export default function Router() {
       ) : null}
 
     </Stack.Navigator>
+    </LiveProvider>
   );
 }
+

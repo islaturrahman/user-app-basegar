@@ -1,11 +1,12 @@
 // export const base_url = "http://192.168.11.161:8000"; // Menggunakan IP lokal agar bisa diakses dari emulator/device
-export const base_url = "https://dashboard.basegar.com";
+export const base_url = "http://192.168.1.7:8000";
 
 export const flash_deal = "/api/v1/flash-deals";
 export const banners = "/api/v1/banners";
 export const users = "/api/v1/users";
 
 //products
+export const active_live_streams = "/api/v1/live-stream/active";
 export const all_products = "/api/v1/products/all";
 export const product_details = "/api/v1/products/details";
 export const get_search_products = "/api/v1/products/search";

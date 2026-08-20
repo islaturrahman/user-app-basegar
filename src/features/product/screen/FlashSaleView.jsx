@@ -29,6 +29,7 @@ export default function FlashSaleView() {
   const [showModal, setShowModal] = useState(false);
   const [pendingProduct, setPendingProduct] = useState(null);
   const { isGlobalExpired } = useContext(TimeSlotContext) || {};
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     const loadMasterTimeSlots = async () => {
@@ -45,6 +46,9 @@ export default function FlashSaleView() {
       }
     };
     loadMasterTimeSlots();
+    
+    const interval = setInterval(() => setTick(t => t + 1), 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const { 
@@ -137,9 +141,10 @@ export default function FlashSaleView() {
         onIncrease={addQuantity}
         onDecrease={minQuantity}
         isGlobalExpired={isGlobalExpired}
+        tick={tick}
       />
     );
-  }, [getCart, handlePressProduct, handleAddProduct, addQuantity, minQuantity, isGlobalExpired]);
+  }, [getCart, handlePressProduct, handleAddProduct, addQuantity, minQuantity, isGlobalExpired, tick]);
 
   return (
     <View className="flex-1 bg-white">
@@ -171,6 +176,7 @@ export default function FlashSaleView() {
           ref={flashListRef}
           key={'flash-sale-products'}
           data={loadingProducts ? [] : filteredProducts}
+          extraData={{ cart, isGlobalExpired, deliveryDate, tick }}
           keyExtractor={(item, idx) => (item.id || idx).toString()}
           numColumns={2}
           estimatedItemSize={250}

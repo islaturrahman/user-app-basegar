@@ -23,9 +23,14 @@ const TimeSlotProvider = ({ children }) => {
   const fetchTimeSlot = async () => {
     try {
       const resp = await get(time_slot);
-      if (resp && resp != null && resp != undefined) {
+      if (Array.isArray(resp)) {
         await AsyncStorage.setItem("timeslot", JSON.stringify(resp));
         await updateDateSlotsWithTime(resp);
+      } else if (resp?.data && Array.isArray(resp.data)) {
+        await AsyncStorage.setItem("timeslot", JSON.stringify(resp.data));
+        await updateDateSlotsWithTime(resp.data);
+      } else {
+        await updateDateSlotsWithTime([]);
       }
     } catch (error) {
       console.error("Error fetching timeslots:", error);
@@ -33,7 +38,8 @@ const TimeSlotProvider = ({ children }) => {
       const cached = await AsyncStorage.getItem("timeslot");
       if (cached) {
         try {
-          await updateDateSlotsWithTime(JSON.parse(cached));
+          const parsed = JSON.parse(cached);
+          await updateDateSlotsWithTime(Array.isArray(parsed) ? parsed : []);
         } catch(e) {
           await updateDateSlotsWithTime([]);
         }
@@ -170,6 +176,7 @@ const TimeSlotProvider = ({ children }) => {
   };
 
   const updateDateSlotsWithTime = async (timeSlots) => {
+    const validSlots = Array.isArray(timeSlots) ? timeSlots : [];
     const today = new Date();
     let newDateSlots = [];
 
@@ -238,7 +245,7 @@ const TimeSlotProvider = ({ children }) => {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
 
-      let slotTimeSlots = [...timeSlots];
+      let slotTimeSlots = [...validSlots];
       
       let isAvailable = true;
 
@@ -289,8 +296,8 @@ const TimeSlotProvider = ({ children }) => {
     setTimeSlot([]);
 
     // Hitung isGlobalExpired: apakah (now + prepTime) sudah lewat end_time terakhir?
-    if (timeSlots.length > 0) {
-      const maxEndTimeStr = timeSlots.reduce((max, slot) =>
+    if (validSlots.length > 0) {
+      const maxEndTimeStr = validSlots.reduce((max, slot) =>
         slot.end_time && slot.end_time > max ? slot.end_time : max, "00:00:00");
       
       if (maxEndTimeStr) {

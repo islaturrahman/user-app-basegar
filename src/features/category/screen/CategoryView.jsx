@@ -134,12 +134,17 @@ export default function CategoryView() {
   const [pendingProduct, setPendingProduct] = useState(null);
   const [isReady, setIsReady] = useState(false);
   const { isGlobalExpired } = useContext(TimeSlotContext) || {};
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
       setIsReady(true);
     });
-    return () => task.cancel();
+    const interval = setInterval(() => setTick(t => t + 1), 30000);
+    return () => {
+      task.cancel();
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {
@@ -351,9 +356,10 @@ export default function CategoryView() {
         onIncrease={addQuantity}
         onDecrease={minQuantity}
         isGlobalExpired={isGlobalExpired}
+        tick={tick}
       />
     );
-  }, [getCart, handlePressProduct, handleAddProduct, addQuantity, minQuantity, isGlobalExpired]);
+  }, [getCart, handlePressProduct, handleAddProduct, addQuantity, minQuantity, isGlobalExpired, tick]);
 
   return (
     <View className="flex-1 bg-white">
@@ -468,7 +474,7 @@ export default function CategoryView() {
             ref={flashListRef}
             key={'category-products'}
             data={loadingProducts ? [] : filteredProducts}
-            extraData={cart}
+            extraData={{ cart, isGlobalExpired, deliveryDate, tick }}
             keyExtractor={(item, idx) => (item.id || idx).toString()}
             numColumns={2}
             estimatedItemSize={250}

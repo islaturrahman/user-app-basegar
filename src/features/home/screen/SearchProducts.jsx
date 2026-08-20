@@ -115,113 +115,116 @@ const SearchProducts = ({ onClose }) => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
-        {isSearching ? (
-          <View className="py-10 items-center justify-center">
-            <ActivityIndicator size="large" color="#0461b4" />
-            <Text className="text-gray-500 mt-3 text-sm">Mencari produk...</Text>
-          </View>
-        ) : hasSearched ? (
-          // ── SEARCH RESULTS ──
-          <View className="mt-5 pb-8">
+      {isSearching ? (
+        <View className="flex-1 py-10 items-center justify-center">
+          <ActivityIndicator size="large" color="#0461b4" />
+          <Text className="text-gray-500 mt-3 text-sm">Mencari produk...</Text>
+        </View>
+      ) : hasSearched ? (
+        // ── SEARCH RESULTS (Optimized using FlatList) ──
+        <FlatList
+          className="flex-1 px-4 pt-5"
+          data={searchResults}
+          keyExtractor={(item) => String(item.id)}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 40 }}
+          ListHeaderComponent={
             <Text className="text-base font-bold text-gray-700 mb-4">
               {searchResults.length} hasil untuk &quot;{searchQuery}&quot;
             </Text>
-            {searchResults.length > 0 ? (
-              searchResults.map((p) => (
-                <TouchableOpacity
-                  key={p.id}
-                  className="flex-row items-center bg-white p-3 mb-3 rounded-xl border border-gray-100 shadow-sm"
-                  onPress={() => { onClose(); navigation.navigate("/p/:id", { id: p.id }); }}
-                >
-                  <View className="w-14 h-14 bg-gray-50 rounded-lg overflow-hidden mr-3 border border-gray-100">
-                    <Image source={renderProductImage(p.image)} className="w-full h-full" resizeMode="contain" />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-bold text-gray-800 mb-0.5" numberOfLines={2}>{p.name}</Text>
-                    <Text className="text-[10px] text-gray-400 mb-1">{p.unit || ""}</Text>
-                    <Text className="text-sm font-black text-green-700">{toRupiah(p.price)}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))
-            ) : (
-              <View className="py-10 items-center justify-center">
-                <Ionicons name="search-outline" size={40} color="#d1d5db" />
-                <Text className="text-gray-400 text-center mt-2">Produk tidak ditemukan</Text>
+          }
+          ListEmptyComponent={
+            <View className="py-10 items-center justify-center">
+              <Ionicons name="search-outline" size={40} color="#d1d5db" />
+              <Text className="text-gray-400 text-center mt-2">Produk tidak ditemukan</Text>
+            </View>
+          }
+          renderItem={({ item: p }) => (
+            <TouchableOpacity
+              className="flex-row items-center bg-white p-3 mb-3 rounded-xl border border-gray-100 shadow-sm"
+              onPress={() => { onClose(); navigation.navigate("/p/:id", { id: p.id }); }}
+            >
+              <View className="w-14 h-14 bg-gray-50 rounded-lg overflow-hidden mr-3 border border-gray-100">
+                <Image source={renderProductImage(p.image)} className="w-full h-full" resizeMode="contain" />
               </View>
-            )}
-          </View>
-        ) : (
-          // ── DEFAULT STATE (input kosong) ──
-          <>
-            {loadingDefault ? (
-              <View className="py-12 items-center">
-                <ActivityIndicator size="large" color="#0461b4" />
+              <View className="flex-1">
+                <Text className="text-sm font-bold text-gray-800 mb-0.5" numberOfLines={2}>{p.name}</Text>
+                <Text className="text-[10px] text-gray-400 mb-1">{p.unit || ""}</Text>
+                <Text className="text-sm font-black text-green-700">{toRupiah(p.price)}</Text>
               </View>
-            ) : (
-              <>
-                {/* POPULAR PRODUCTS – Chips */}
-                {popularProducts.length > 0 && (
-                  <View className="mt-5">
-                    <View className="flex-row justify-between items-center mb-3">
-                      <Text className="text-base font-extrabold text-gray-900">🔥 Produk Populer</Text>
-                    </View>
-                    <View className="flex-row flex-wrap">
-                      {popularProducts.map((p) => (
-                        <TouchableOpacity
-                          key={p.id}
-                          className="flex-row items-center bg-gray-50 border border-gray-200 rounded-full pl-1 pr-3 py-1 mr-2 mb-2"
-                          onPress={() => { onClose(); navigation.navigate("/p/:id", { id: p.id }); }}
-                        >
-                          <View className="w-7 h-7 rounded-full overflow-hidden bg-white border border-gray-100 mr-1.5">
-                            <Image
-                              source={renderProductImage(p.image)}
-                              className="w-full h-full"
-                              resizeMode="cover"
-                            />
-                          </View>
-                          <Text className="text-xs font-semibold text-gray-700" numberOfLines={1}>
-                            {p.name?.split(" ").slice(0, 3).join(" ")}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
+            </TouchableOpacity>
+          )}
+        />
+      ) : (
+        // ── DEFAULT STATE (input kosong) ──
+        <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
+          {loadingDefault ? (
+            <View className="py-12 items-center">
+              <ActivityIndicator size="large" color="#0461b4" />
+            </View>
+          ) : (
+            <>
+              {/* POPULAR PRODUCTS – Chips */}
+              {popularProducts.length > 0 && (
+                <View className="mt-5">
+                  <View className="flex-row justify-between items-center mb-3">
+                    <Text className="text-base font-extrabold text-gray-900">🔥 Produk Populer</Text>
                   </View>
-                )}
-
-                {/* TOP REVIEWED – List dengan rating */}
-                {topReviewedProducts.length > 0 && (
-                  <View className="mt-6 mb-10">
-                    <View className="flex-row justify-between items-center mb-3">
-                      <Text className="text-base font-extrabold text-gray-900">⭐ Rating Terbaik</Text>
-                    </View>
-                    {topReviewedProducts.map((p) => (
+                  <View className="flex-row flex-wrap">
+                    {popularProducts.map((p) => (
                       <TouchableOpacity
                         key={p.id}
-                        className="flex-row items-center bg-white border border-gray-100 rounded-xl p-3 mb-3 shadow-sm"
+                        className="flex-row items-center bg-gray-50 border border-gray-200 rounded-full pl-1 pr-3 py-1 mr-2 mb-2"
                         onPress={() => { onClose(); navigation.navigate("/p/:id", { id: p.id }); }}
                       >
-                        <View className="w-14 h-14 bg-gray-50 rounded-lg overflow-hidden mr-3 border border-gray-100">
-                          <Image source={renderProductImage(p.image)} className="w-full h-full" resizeMode="contain" />
+                        <View className="w-7 h-7 rounded-full overflow-hidden bg-white border border-gray-100 mr-1.5">
+                          <Image
+                            source={renderProductImage(p.image)}
+                            className="w-full h-full"
+                            resizeMode="cover"
+                          />
                         </View>
-                        <View className="flex-1">
-                          <Text className="text-sm font-bold text-gray-800 mb-0.5" numberOfLines={1}>{p.name}</Text>
-                          <Text className="text-[10px] text-amber-500 mb-1 font-bold tracking-widest">
-                            {renderStars(p.rating)}
-                            <Text className="text-gray-400 font-normal tracking-normal"> ({p.rating_count || 0})</Text>
-                          </Text>
-                          <Text className="text-sm font-black text-green-700">{toRupiah(p.price)}</Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={16} color="#d1d5db" />
+                        <Text className="text-xs font-semibold text-gray-700" numberOfLines={1}>
+                          {p.name?.split(" ").slice(0, 3).join(" ")}
+                        </Text>
                       </TouchableOpacity>
                     ))}
                   </View>
-                )}
-              </>
-            )}
-          </>
-        )}
-      </ScrollView>
+                </View>
+              )}
+
+              {/* TOP REVIEWED – List dengan rating */}
+              {topReviewedProducts.length > 0 && (
+                <View className="mt-6 mb-10">
+                  <View className="flex-row justify-between items-center mb-3">
+                    <Text className="text-base font-extrabold text-gray-900">⭐ Rating Terbaik</Text>
+                  </View>
+                  {topReviewedProducts.map((p) => (
+                    <TouchableOpacity
+                      key={p.id}
+                      className="flex-row items-center bg-white border border-gray-100 rounded-xl p-3 mb-3 shadow-sm"
+                      onPress={() => { onClose(); navigation.navigate("/p/:id", { id: p.id }); }}
+                    >
+                      <View className="w-14 h-14 bg-gray-50 rounded-lg overflow-hidden mr-3 border border-gray-100">
+                        <Image source={renderProductImage(p.image)} className="w-full h-full" resizeMode="contain" />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-sm font-bold text-gray-800 mb-0.5" numberOfLines={1}>{p.name}</Text>
+                        <Text className="text-[10px] text-amber-500 mb-1 font-bold tracking-widest">
+                          {renderStars(p.rating)}
+                          <Text className="text-gray-400 font-normal tracking-normal"> ({p.rating_count || 0})</Text>
+                        </Text>
+                        <Text className="text-sm font-black text-green-700">{toRupiah(p.price)}</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color="#d1d5db" />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </>
+          )}
+        </ScrollView>
+      )}
     </SafeAreaView>
   </View>
   );

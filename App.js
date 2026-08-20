@@ -60,6 +60,8 @@ const linking = {
       '/voucher': 'voucher',
       '/categories/:category_id': 'categories/:category_id',
       '/flash-sale/:id': 'flash-sale/:id',
+      '/live': 'live',
+      '/live/:id': 'live/:id',
     }
   }
 };

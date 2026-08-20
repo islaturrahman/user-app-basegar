@@ -14,7 +14,8 @@ const ProductCard = ({
   onAdd, 
   onIncrease, 
   onDecrease,
-  isGlobalExpired = false
+  isGlobalExpired = false,
+  tick
 }) => {
   let p = { ...product };
   

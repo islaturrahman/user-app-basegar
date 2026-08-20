@@ -21,6 +21,12 @@ const ProductWidget = ({ products, type = "grid" }) => {
   const [snackbar, setSnackbar] = useState({ show: false, message: "" });
   const [showModal, setShowModal] = useState(false);
   const [pendingProduct, setPendingProduct] = useState(null);
+  const [tick, setTick] = useState(0);
+
+  React.useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const navigation = useNavigation();
 

@@ -4,7 +4,7 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BottomMenu } from "../../../components/BottomMenu";
 import { CustomerProvider } from "../../../provider/CustomerProvider";
-import { Coins, Sprout, Ticket, Receipt, MapPin, CreditCard, Undo2, Info, ShieldCheck, FileText, LogOut, ChevronRight, Pencil, Sparkles, Wallet } from "lucide-react-native";
+import { Coins, Sprout, Ticket, Receipt, MapPin, CreditCard, Undo2, Info, ShieldCheck, FileText, LogOut, ChevronRight, Pencil, Sparkles, Wallet, MessageCircle } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { toRupiah } from "../../../components/Helper";
 
@@ -162,6 +162,13 @@ export default function Account() {
   ];
 
   const menuGroup3 = [
+    {
+      title: "Chat CS",
+      subtitle: "Hubungi Customer Service",
+      icon: MessageCircle,
+      iconColor: "#15803d",
+      onPress: () => navigation.navigate('/cs')
+    },
     {
       title: "Daftar Pesanan",
       icon: Receipt,

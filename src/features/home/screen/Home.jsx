@@ -236,6 +236,8 @@ export default function Home() {
             </TouchableOpacity>
           </View>
 
+          {/* Live Banner dihapus sesuai permintaan */}
+
           <View className="py-3">
             <BannerWidget />
           </View>
