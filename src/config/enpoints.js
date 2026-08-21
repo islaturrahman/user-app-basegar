@@ -1,9 +1,13 @@
-// export const base_url = "http://192.168.11.161:8000"; // Menggunakan IP lokal agar bisa diakses dari emulator/device
-export const base_url = "http://192.168.1.7:8000";
+export const base_url = process.env.EXPO_PUBLIC_BASE_URL || "http://192.168.1.7:8000";
 
 export const flash_deal = "/api/v1/flash-deals";
+export const AGORA_APP_ID = process.env.EXPO_PUBLIC_AGORA_APP_ID || "0674545c76764fafafbc867006871f3e";
+export const AGORA_APP_CERTIFICATE = process.env.EXPO_PUBLIC_AGORA_APP_CERTIFICATE || "7657b2f182044a128bb85957a6fb58b4";
+export const AGORA_TOKEN = process.env.EXPO_PUBLIC_AGORA_TOKEN || "007eJxTYLh08eDNEP50OYYJL1pv767atuNOfVw3e8kPFxHmk+/vssxVYDAwMzcxNTFNNjczNzNJSwTCpGQLM3MDAzMLc8M041TrBe1ZDYGMDIf217EwMTCCIYjPz5CUWJyanlgUn5NZlhpvYsTAwASXZGWwBAEAvIAmww==";
+export const AGORA_CHANNEL = process.env.EXPO_PUBLIC_AGORA_CHANNEL || "basegar_live_42";
 export const banners = "/api/v1/banners";
 export const users = "/api/v1/users";
+
 
 //products
 export const active_live_streams = "/api/v1/live-stream/active";

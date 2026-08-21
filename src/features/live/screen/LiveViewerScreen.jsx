@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback, useContext } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useContext, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Dimensions,
   Platform, StatusBar, Animated, ScrollView, Image
@@ -13,7 +13,7 @@ import LiveChat from '../widget/LiveChat';
 import LiveFlashSale from '../widget/LiveFlashSale';
 import { BlankBottomSheet } from '../../../components/BlankBottomSheet';
 import { ShoppingCart, ChevronDown, ChevronUp, X } from 'lucide-react-native';
-import { base_url } from '../../../config/enpoints';
+import { base_url, AGORA_APP_ID, AGORA_TOKEN } from '../../../config/enpoints';
 
 let WebRTC = null;
 try {
@@ -40,175 +40,210 @@ function LiveDot() {
   );
 }
 
-// Dynamic Realtime Video Player View for Live Stream with Real-time Camera Frame Receiver
+// Real-time Video Player powered by Agora RTC SDK (Audience Live Mode) - Memoized for Industry Standard Performance
 function VideoPlayerMock({ session, sessionIdParam }) {
-  const [remoteStream, setRemoteStream] = useState(null);
   const [liveFrame, setLiveFrame] = useState(null);
-  const [isWebRTCConnected, setIsWebRTCConnected] = useState(false);
+  const [isAgoraConnected, setIsAgoraConnected] = useState(false);
   const sessionIdRaw = (sessionIdParam || session?.id || '1').toString().replace('server-', '').replace('live-00', '');
-  const liveKitRoom = `room_live_${sessionIdRaw}`;
+  const agoraChannel = session?.agora_token ? session.agora_channel : (AGORA_TOKEN ? "basegar_live_42" : (session?.agora_channel || `basegar_live_${sessionIdRaw}`));
+  const agoraAppId = session?.agora_app_id || AGORA_APP_ID;
+  const agoraToken = session?.agora_token || AGORA_TOKEN || null;
 
-  const liveKitViewerHtml = `
+  useEffect(() => {
+    console.log('[AGORA RTC CHANNEL TARGET]', agoraChannel);
+  }, [agoraChannel]);
+
+  const agoraViewerHtml = useMemo(() => `
     <!DOCTYPE html>
     <html>
     <head>
       <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
       <style>
         * { margin:0; padding:0; box-sizing:border-box; }
-        body, html { width:100vw; height:100vh; overflow:hidden; background:transparent; display:flex; align-items:center; justify-content:center; }
-        video { width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; }
-        #status-badge { position:absolute; top:12px; right:12px; background:rgba(34,197,94,0.85); color:white; font-family:sans-serif; font-size:10px; font-weight:bold; padding:4px 8px; borderRadius:12px; z-index:99; }
+        body, html { width:100vw; height:100vh; overflow:hidden; background:#000; display:flex; align-items:center; justify-content:center; }
+        #agora-player { width:100vw; height:100vh; position:absolute; top:0; left:0; overflow:hidden; background:#000; }
+        #agora-player * { width:100% !important; height:100% !important; object-fit:cover !important; }
+        #status-badge { position:absolute; top:12px; right:12px; background:rgba(22,163,74,0.9); color:white; font-family:sans-serif; font-size:10px; font-weight:bold; padding:4px 8px; border-radius:12px; z-index:99; }
       </style>
+      <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.20.0.js"></script>
     </head>
     <body>
-      <div id="status-badge">⚡ WEBRTC 30 FPS P2P</div>
-      <video id="remoteVideo" autoplay playsinline></video>
+      <div id="status-badge">⚡ AGORA RTC 60 FPS LIVE</div>
+      <div id="agora-player"></div>
+      <video id="agora-video-element" autoplay playsinline webkit-playsinline style="width:100vw; height:100vh; object-fit:cover; position:absolute; top:0; left:0; z-index:10; background:#000;"></video>
       <script>
-        // Forward logs to React Native Metro
         const rnLog = (msg) => {
           if (window.ReactNativeWebView) {
             window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'log', message: msg }));
           }
         };
-        console.log = function(...args) { rnLog('[WEBVIEW LOG] ' + args.join(' ')); };
-        console.error = function(...args) { rnLog('[WEBVIEW ERROR] ' + args.join(' ')); };
 
-        const sessionId = "${sessionIdRaw}";
-        const baseUrl = "${base_url}";
-        const signalUrl = baseUrl + "/api/v1/live-stream/signal";
-        const video = document.getElementById('remoteVideo');
-        
-        let pc = null;
-        let pollInterval = null;
+        const appId = "${agoraAppId}";
+        const channel = "${agoraChannel}";
+        const token = ${agoraToken ? `"${agoraToken}"` : "null"};
+        const uid = 99999;
 
-        async function joinStream() {
+        async function initAgora() {
           try {
-            rnLog('[WEBRTC] Starting Viewer polling for offer...');
-            pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-            
-            pc.ontrack = (event) => {
-              rnLog('[WEBRTC] Video Track Received!');
-              if (event.streams && event.streams[0]) {
-                video.srcObject = event.streams[0];
-                video.style.backgroundColor = '#000';
+            rnLog('[AGORA RTC] Initializing Client for channel: ' + channel);
+            let client;
+            try {
+              client = AgoraRTC.createClient({ mode: "live", codec: "h264" });
+            } catch(e) {
+              client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
+            }
+            await client.setClientRole("audience");
+
+            client.on("user-published", async (user, mediaType) => {
+              rnLog('[AGORA RTC] Host published track: ' + mediaType);
+              await client.subscribe(user, mediaType);
+              if (mediaType === "video") {
+                const playerContainer = document.getElementById("agora-player");
+                playerContainer.innerHTML = '';
+                try {
+                  user.videoTrack.play(playerContainer, { fit: "cover" });
+                } catch(e) {}
+
+                // Direct HTML5 MediaStreamTrack binding for Android WebView rendering
+                try {
+                  const videoEl = document.getElementById("agora-video-element");
+                  const track = user.videoTrack._mediaStreamTrack || (user.videoTrack.getMediaStreamTrack && user.videoTrack.getMediaStreamTrack());
+                  if (track && videoEl) {
+                    videoEl.srcObject = new MediaStream([track]);
+                    videoEl.play().catch(e => rnLog('[VIDEO PLAY ERR] ' + e.message));
+                  }
+                } catch(e) {
+                  rnLog('[VIDEO BIND ERR] ' + e.message);
+                }
+
+                rnLog('[AGORA RTC] Smooth Video playing!');
                 if (window.ReactNativeWebView) {
-                  window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'webrtc_connected' }));
+                  window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'agora_connected' }));
                 }
               }
-            };
+              if (mediaType === "audio") {
+                user.audioTrack.play();
+              }
+            });
 
-            pollInterval = setInterval(async () => {
-              try {
-                const res = await fetch(signalUrl + '/' + sessionId);
-                const sig = await res.json();
-                
-                if (sig && sig.offer && (!pc.remoteDescription || pc.remoteDescription.type !== 'offer')) {
-                  clearInterval(pollInterval);
-                  rnLog('[WEBRTC] Found offer! Creating answer...');
-                  
-                  const offerObj = JSON.parse(sig.offer);
-                  await pc.setRemoteDescription(new RTCSessionDescription(offerObj));
-                  
-                  const answer = await pc.createAnswer();
-                  await pc.setLocalDescription(answer);
+            await client.join(appId, channel, token, uid);
+            rnLog('[AGORA RTC] Joined channel successfully as Audience UID ' + uid + '!');
 
-                  await fetch(signalUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ session_id: sessionId, type: 'answer', data: JSON.stringify(answer) })
-                  });
-                  rnLog('[WEBRTC] Answer sent. Connected!');
+            // Subscribe to existing host tracks if host was already broadcasting
+            if (client.remoteUsers && client.remoteUsers.length > 0) {
+              rnLog('[AGORA RTC] Found ' + client.remoteUsers.length + ' existing host(s) in channel!');
+              for (const remoteUser of client.remoteUsers) {
+                if (remoteUser.hasVideo) {
+                  rnLog('[AGORA RTC] Playing existing host video for UID: ' + remoteUser.uid);
+                  await client.subscribe(remoteUser, "video");
+                  const playerContainer = document.getElementById("agora-player");
+                  playerContainer.innerHTML = '';
+                  try {
+                    remoteUser.videoTrack.play(playerContainer, { fit: "cover" });
+                  } catch(e) {}
+
+                  try {
+                    const videoEl = document.getElementById("agora-video-element");
+                    const track = remoteUser.videoTrack._mediaStreamTrack || (remoteUser.videoTrack.getMediaStreamTrack && remoteUser.videoTrack.getMediaStreamTrack());
+                    if (track && videoEl) {
+                      videoEl.srcObject = new MediaStream([track]);
+                      videoEl.play().catch(e => rnLog('[VIDEO PLAY ERR] ' + e.message));
+                    }
+                  } catch(e) {}
+
+                  if (window.ReactNativeWebView) {
+                    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'agora_connected' }));
+                  }
                 }
-              } catch (err) {}
-            }, 1500);
-            
+                if (remoteUser.hasAudio) {
+                  await client.subscribe(remoteUser, "audio");
+                  remoteUser.audioTrack.play();
+                }
+              }
+            }
           } catch (err) {
-            console.error('Viewer WebRTC error:', err);
+            rnLog('[AGORA RTC ERROR] ' + err.message);
+            if (window.ReactNativeWebView) {
+              window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'agora_error', error: err.message }));
+            }
           }
         }
 
-        window.onload = joinStream;
+        window.onload = initAgora;
       </script>
     </body>
     </html>
-  `;
+  `, [agoraAppId, agoraChannel, agoraToken]);
 
-  // Frame Polling Fallback
+  // High-Speed 10 FPS Live Player with AbortController (TikTok Speed)
   useEffect(() => {
-    let isMounted = true;
-    const parseJson = async (response) => {
-      if (!response || !response.ok) return null;
-      const text = await response.text();
-      try {
-        return JSON.parse(text);
-      } catch (e) {
-        return null;
-      }
-    };
+    if (isAgoraConnected) return; // Stop frame polling completely when Agora RTC stream is connected!
 
-    const fetchFrame = async () => {
+    let isMounted = true;
+    let controller = null;
+
+    const fetchFastFrame = async () => {
+      if (!isMounted) return;
+      if (controller) controller.abort();
+      controller = new AbortController();
+
       try {
         const targetId = sessionIdRaw || '1';
-        let url = `${base_url}/api/v1/live-stream/${targetId}/frame`;
-        let res = await fetch(url);
-        let json = await parseJson(res);
-
-        if (!json || !json.image) {
-          const resFB = await fetch(`${base_url}/api/v1/live-stream/1/frame`);
-          const jsonFB = await parseJson(resFB);
-          if (jsonFB && jsonFB.image) {
-            json = jsonFB;
+        const res = await fetch(`${base_url}/api/v1/live-stream/${targetId}/frame`, {
+          signal: controller.signal
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (isMounted && json && json.image && json.image.startsWith('data:image')) {
+            setLiveFrame(json.image);
           }
         }
-
-        if (isMounted && json && json.image && json.image.startsWith('data:image')) {
-          console.log('[USER LIVE FRAME RECEIVED]', json.image.length, 'bytes');
-          setLiveFrame(json.image);
-        }
-      } catch (e) {
-        console.log('[USER LIVE FRAME FETCH ERROR]', e.message);
-      }
+      } catch (e) {}
     };
 
-    fetchFrame();
-    const interval = setInterval(fetchFrame, 400);
+    fetchFastFrame();
+    const interval = setInterval(fetchFastFrame, 100); // 100ms = 10 FPS TikTok-speed frame updates!
     return () => {
       isMounted = false;
+      if (controller) controller.abort();
       clearInterval(interval);
     };
-  }, [sessionIdRaw]);
+  }, [sessionIdRaw, isAgoraConnected]);
 
   return (
     <View style={styles.videoBox}>
       <WebView
         originWhitelist={['*']}
-        source={{ html: liveKitViewerHtml }}
-        style={{ width: SCREEN_W, height: SCREEN_H, position: 'absolute', top: 0, left: 0, backgroundColor: 'transparent' }}
-        containerStyle={{ backgroundColor: 'transparent' }}
+        source={{ html: agoraViewerHtml }}
+        style={{ width: SCREEN_W, height: SCREEN_H, backgroundColor: '#000000' }}
+        containerStyle={{ width: SCREEN_W, height: SCREEN_H, backgroundColor: '#000000' }}
         allowsInlineMediaPlayback={true}
         mediaPlaybackRequiresUserAction={false}
         javaScriptEnabled={true}
         domStorageEnabled={true}
+        mixedContentMode="always"
         onMessage={(event) => {
           try {
             const data = JSON.parse(event.nativeEvent.data);
             if (data.type === 'log') {
               console.log(data.message);
-            } else if (data.type === 'webrtc_connected') {
-              console.log('[WEBRTC] Connected! Hiding frame fallback.');
-              setIsWebRTCConnected(true);
+            } else if (data.type === 'agora_connected') {
+              console.log('[AGORA RTC] Connected! Hiding frame fallback.');
+              setIsAgoraConnected(true);
+            } else if (data.type === 'agora_error') {
+              console.warn(`[AGORA FALLBACK] Error: ${data.error || 'Connection failed'}. Falling back to Live Stream player...`);
+              setIsAgoraConnected(false);
             }
           } catch(e) {
-            // Fallback for old string messages
-            if (event.nativeEvent.data === 'webrtc_connected') {
-              console.log('[WEBRTC] Connected! Hiding frame fallback.');
-              setIsWebRTCConnected(true);
+            if (event.nativeEvent.data === 'agora_connected') {
+              console.log('[AGORA RTC] Connected! Hiding frame fallback.');
+              setIsAgoraConnected(true);
             }
           }
         }}
       />
       
-      {!isWebRTCConnected && liveFrame && (
+      {!isAgoraConnected && liveFrame && (
         <Image
           source={{ uri: liveFrame }}
           style={{ width: SCREEN_W, height: SCREEN_H, position: 'absolute', top: 0, left: 0 }}
@@ -220,6 +255,7 @@ function VideoPlayerMock({ session, sessionIdParam }) {
     </View>
   );
 }
+const VideoPlayerMockMemo = React.memo(VideoPlayerMock);
 
 // Recipe Bundle Bottom Sheet
 function RecipeBundleSheet({ bundle, isOpen, onClose, onAddAll }) {
@@ -338,7 +374,7 @@ export default function LiveViewerScreen() {
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       {/* VIDEO PLAYER */}
-      <VideoPlayerMock session={session} sessionIdParam={sessionId} />
+      <VideoPlayerMockMemo session={session} sessionIdParam={sessionId} />
 
       {/* OVERLAY UI */}
       <View style={StyleSheet.absoluteFill} pointerEvents="box-none">

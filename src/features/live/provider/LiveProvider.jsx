@@ -143,7 +143,10 @@ export default function LiveProvider({ children }) {
             viewerCount: item.viewer_count || 15,
             status: 'live',
             startedAt: item.started_at || new Date().toISOString(),
-            streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
+            streamUrl: item.stream_url || 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
+            agora_channel: item.agora_channel || `basegar_live_${item.id}`,
+            agora_token: item.agora_token || null,
+            agora_app_id: item.agora_app_id || null,
             products: item.products && item.products.length > 0 ? item.products.map(p => ({
               id: p.product_id,
               name: p.product?.name || `Produk #${p.product_id}`,
