@@ -121,7 +121,7 @@ export default function LiveProvider({ children }) {
   const [scheduled, setScheduled] = useState(MOCK_SCHEDULED);
   const [activeSession, setActiveSession] = useState(null);
   const [chats, setChats] = useState(MOCK_CHATS);
-  const [viewerCount, setViewerCount] = useState(234);
+  const [viewerCount, setViewerCount] = useState(1);
   const chatIntervalRef = useRef(null);
   const viewerIntervalRef = useRef(null);
   const chatIdRef = useRef(100);
@@ -140,7 +140,7 @@ export default function LiveProvider({ children }) {
             hostAvatar: null,
             thumbnailColor: '#166534',
             emoji: '🔴',
-            viewerCount: item.viewer_count || 15,
+            viewerCount: item.viewer_count || item.viewers_count || item.viewers || 1,
             status: 'live',
             startedAt: item.started_at || new Date().toISOString(),
             streamUrl: item.stream_url || 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
@@ -158,7 +158,15 @@ export default function LiveProvider({ children }) {
             ]
           }));
           
-          // Deduplicate and prepend server streams
+          // Sync active session real viewer count
+          if (activeSession) {
+            const currentApiSession = apiSessions.find(s => String(s.id).replace('server-', '') === String(activeSession.id).replace('server-', ''));
+            if (currentApiSession && currentApiSession.viewerCount) {
+              setViewerCount(currentApiSession.viewerCount);
+            }
+          }
+
+          // Prepend server streams
           setSessions(prev => {
             const mockOnly = MOCK_SESSIONS;
             return [...apiSessions, ...mockOnly];
@@ -172,22 +180,35 @@ export default function LiveProvider({ children }) {
     fetchActiveStreams();
     const interval = setInterval(fetchActiveStreams, 4000);
     return () => clearInterval(interval);
-  }, []);
+  }, [activeSession]);
 
-  const joinSession = useCallback((sessionId) => {
+  const joinSession = useCallback(async (sessionId) => {
     const session = sessions.find(s => String(s.id) === String(sessionId) || String(s.id).replace('server-', '') === String(sessionId).replace('server-', ''));
     if (session) {
       setActiveSession(session);
       setChats(MOCK_CHATS);
-      setViewerCount(session.viewerCount);
+      setViewerCount(prev => Math.max(1, session.viewerCount || 1));
+
+      // Send join ping to backend server
+      try {
+        const sId = String(sessionId).replace('server-', '');
+        await fetch(`${base_url}/api/v1/live-stream/${sId}/view`, { method: 'POST' });
+        await fetch(`${base_url}/api/v1/live-stream/${sId}/view`, { method: 'GET' });
+      } catch (e) {}
     }
   }, [sessions]);
 
-  const leaveSession = useCallback(() => {
+  const leaveSession = useCallback(async () => {
+    if (activeSession) {
+      try {
+        const sId = String(activeSession.id).replace('server-', '');
+        await fetch(`${base_url}/api/v1/live-stream/${sId}/leave`, { method: 'POST' });
+      } catch(e) {}
+    }
     setActiveSession(null);
-  }, []);
+  }, [activeSession]);
 
-  // Simulasi chat masuk & viewer count berubah saat sedang live
+  // Sync real-time chat & heartbeat viewer ping
   useEffect(() => {
     if (activeSession) {
       chatIntervalRef.current = setInterval(() => {
@@ -199,18 +220,19 @@ export default function LiveProvider({ children }) {
           time: Date.now(),
         };
         setChats(prev => [...prev.slice(-30), newChat]); // max 30 pesan
-      }, 3000 + Math.random() * 4000); // setiap 3-7 detik
+      }, 4000 + Math.random() * 4000);
 
-      viewerIntervalRef.current = setInterval(() => {
-        setViewerCount(prev => {
-          const delta = Math.floor(Math.random() * 7) - 3; // -3 to +3
-          return Math.max(50, prev + delta);
-        });
+      // Heartbeat ping to report viewer presence to server
+      const heartbeatInterval = setInterval(async () => {
+        try {
+          const sId = String(activeSession.id).replace('server-', '');
+          await fetch(`${base_url}/api/v1/live-stream/${sId}/view`);
+        } catch(e) {}
       }, 5000);
 
       return () => {
         clearInterval(chatIntervalRef.current);
-        clearInterval(viewerIntervalRef.current);
+        clearInterval(heartbeatInterval);
       };
     }
   }, [activeSession]);

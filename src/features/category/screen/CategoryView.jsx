@@ -12,6 +12,7 @@ import TimeslotModal from "../../../components/TimeslotModal";
 import ImageWithSkeleton from "../../../components/ImageWithSkeleton";
 import ProductCard from "../../../components/ProductCard";
 import FloatingFreeDeliveryProgress from "../../cart/widget/FloatingFreeDeliveryProgress";
+import SearchProducts from "../../home/screen/SearchProducts";
 
 import { path_product_img, path_category_img, path_category_banner_img, base_url, category as category_endpoint, category_childs, category_products_all } from "../../../config/enpoints";
 import { get } from "../../../data/api";
@@ -128,6 +129,7 @@ export default function CategoryView() {
 
   const [active, setActive] = useState(false); // false = "Semua"
   const [isTopSheetOpen, setIsTopSheetOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [masterTimeSlots, setMasterTimeSlots] = useState([]);
   
   const [showModal, setShowModal] = useState(false);
@@ -374,7 +376,11 @@ export default function CategoryView() {
         </TouchableOpacity>
 
         <View className="flex-1 mx-2 relative">
-          <TouchableOpacity activeOpacity={1} className="flex-row items-center bg-gray-100 rounded-full py-1.5 px-3.5 h-9">
+          <TouchableOpacity 
+            activeOpacity={0.8}
+            onPress={() => setIsSearchOpen(true)}
+            className="flex-row items-center bg-gray-100 rounded-full py-1.5 px-3.5 h-9"
+          >
             <Text className="text-sm mr-1.5">🍊</Text>
             <Text className="text-gray-400 text-[11px] flex-1">Cari beragam kebutuhan harian</Text>
             <Ionicons name="search" size={16} color="#6b7280" />
@@ -598,6 +604,15 @@ export default function CategoryView() {
         }}
         product={pendingProduct}
       />
+
+      {/* Modal Search Products */}
+      <Modal
+        visible={isSearchOpen}
+        animationType="slide"
+        onRequestClose={() => setIsSearchOpen(false)}
+      >
+        <SearchProducts onClose={() => setIsSearchOpen(false)} />
+      </Modal>
     </View>
   );
 }

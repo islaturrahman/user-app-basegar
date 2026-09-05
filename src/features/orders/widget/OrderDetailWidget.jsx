@@ -5,15 +5,11 @@ import {
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
-  Linking,
   RefreshControl,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { OrderDetailContext } from "../provider/OrderDetailProvider";
-
-const WA_NUMBER = "6285298197900";
-
 
 const toRupiah = (v) => `Rp ${Number(v || 0).toLocaleString("id-ID")}`;
 
@@ -115,6 +111,20 @@ export default function OrderDetailWidget() {
   const isStep3Active    = status === "out_for_delivery";
   const isStep4Completed = status === "delivered" || status === "completed";
 
+  // Check if Chat feature is active for this order (active when confirmed, processing, packaging, out_for_delivery, or shopping)
+  const isChatActive = ["confirmed", "processing", "packaging", "out_for_delivery", "shopping"].includes(status);
+
+  const handleOpenChat = () => {
+    if (!isChatActive) return;
+    navigation.navigate("/order-chat", { 
+      orderId: order?.id,
+      status: statusCfg.label,
+      amount: order?.order_amount || 0,
+      runnerName: order?.delivery_man ? `${order.delivery_man.f_name} ${order.delivery_man.l_name}` : "Runner Basegar",
+      runnerPhone: order?.delivery_man?.phone || ""
+    });
+  };
+
   return (
     <ScrollView 
       className="flex-1 bg-gray-50" 
@@ -131,7 +141,7 @@ export default function OrderDetailWidget() {
 
         {/* Status Header */}
         <View
-          className="rounded-2xl p-4 mb-4 flex-row items-center"
+          className="rounded-2xl p-4 mb-3 flex-row items-center"
           style={{ backgroundColor: statusCfg.bg, borderWidth: 1, borderColor: statusCfg.border }}
         >
           <View
@@ -148,10 +158,62 @@ export default function OrderDetailWidget() {
               {statusCfg.label}
             </Text>
           </View>
-          <Text className="text-xs text-gray-400">
-            #{order?.id || "-"}
-          </Text>
+
+          <View className="flex-row items-center space-x-2">
+            <TouchableOpacity
+              disabled={!isChatActive}
+              onPress={handleOpenChat}
+              className={`w-8 h-8 rounded-full items-center justify-center mr-1 ${isChatActive ? 'bg-emerald-600' : 'bg-gray-300 opacity-50'}`}
+              activeOpacity={0.8}
+            >
+              <FontAwesome5 name="comment-dots" size={14} color="white" />
+            </TouchableOpacity>
+
+            <Text className="text-xs text-gray-400">
+              #{order?.id || "-"}
+            </Text>
+          </View>
         </View>
+
+        {/* Chat Runner & Support Pesanan Bar */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          disabled={!isChatActive}
+          onPress={handleOpenChat}
+          className={`rounded-2xl p-3.5 flex-row items-center justify-between mb-4 border ${
+            isChatActive 
+              ? "bg-emerald-700 border-emerald-800 shadow-sm" 
+              : "bg-gray-100 border-gray-200 opacity-70"
+          }`}
+        >
+          <View className="flex-row items-center flex-1 mr-2">
+            <View className={`w-9 h-9 rounded-full items-center justify-center mr-3 ${isChatActive ? "bg-emerald-800" : "bg-gray-300"}`}>
+              <FontAwesome5 name="comments" size={16} color="white" />
+            </View>
+            <View className="flex-1">
+              <View className="flex-row items-center space-x-1.5">
+                <Text className={`text-xs font-bold ${isChatActive ? "text-white" : "text-gray-700"}`}>
+                  Chat Runner & Support Pesanan
+                </Text>
+                {isChatActive && (
+                  <View className="bg-emerald-500/40 px-1.5 py-0.5 rounded">
+                    <Text className="text-[9px] font-bold text-white uppercase">Aktif ●</Text>
+                  </View>
+                )}
+              </View>
+              <Text className={`text-[10px] mt-0.5 ${isChatActive ? "text-emerald-100" : "text-gray-400"}`}>
+                {isChatActive 
+                  ? "Tanyakan update belanja & pengiriman langsung ke Runner / CS" 
+                  : "Chat aktif otomatis saat status pesanan dikonfirmasi"}
+              </Text>
+            </View>
+          </View>
+          <FontAwesome5 
+            name="chevron-right" 
+            size={12} 
+            color={isChatActive ? "white" : "#9ca3af"} 
+          />
+        </TouchableOpacity>
 
         {/* Delivery Address */}
         {deliveryAddress && (
@@ -221,42 +283,63 @@ export default function OrderDetailWidget() {
 
         {/* Order Summary */}
         <View className="bg-white rounded-2xl p-4 mb-4 border border-gray-100">
-          <Text className="text-xs font-black text-gray-700 uppercase tracking-wider mb-3">
-            Ringkasan Pembayaran
-          </Text>
-          <View className="flex-row justify-between mb-2">
-            <Text className="text-sm text-gray-500">Total Item</Text>
-            <Text className="text-sm font-semibold text-gray-800">
-              {toRupiah(Number(order?.order_amount || 0) - Number(order?.delivery_charge || 0))}
+          <View className="flex-row items-center justify-between mb-3">
+            <Text className="text-xs font-black text-gray-700 uppercase tracking-wider">
+              Ringkasan Pembayaran
             </Text>
+            {/* Badge jika item diupdate admin */}
+            {(() => {
+              const computedSubtotal = orderDetails.reduce(
+                (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0
+              );
+              const storedSubtotal = Number(order?.order_amount || 0) - Number(order?.delivery_charge || 0);
+              const diff = Math.abs(computedSubtotal - storedSubtotal);
+              if (orderDetails.length > 0 && diff > 1) {
+                return (
+                  <View style={{ backgroundColor: '#fef9c3', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: '#fde047' }}>
+                    <Text style={{ fontSize: 9, fontWeight: '800', color: '#854d0e' }}>⚡ Diperbarui Admin</Text>
+                  </View>
+                );
+              }
+              return null;
+            })()}
           </View>
-          <View className="flex-row justify-between mb-2">
-            <Text className="text-sm text-gray-500">Ongkos Kirim</Text>
-            <Text className="text-sm font-semibold text-gray-800">
-              {toRupiah(order?.delivery_charge || 0)}
-            </Text>
-          </View>
+
+          {/* Total Item — hitung dari orderDetails agar selalu akurat */}
           {(() => {
-            const isFullWallet = order?.payment_method === "wallet_payment";
-            const totalOrder = Number(order?.order_amount || 0);
-            
+            const computedSubtotal = orderDetails.reduce(
+              (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0
+            );
+            const deliveryCharge = Number(order?.delivery_charge || 0);
+            const grandTotal = computedSubtotal + deliveryCharge;
+
             const payments = Array.isArray(order?.payments) ? order.payments : Array.isArray(order?.partial_payment) ? order.partial_payment : [];
+            const isFullWallet = order?.payment_method === "wallet_payment";
             let partialAmount = payments.reduce((acc, curr) => {
               if (curr.payment_method === 'wallet_payment' || curr.paid_with === 'wallet_payment' || curr.paid_with === 'wallet' || curr.payment_status === 'paid') {
-                 return acc + Number(curr.paid_amount || curr.amount || 0);
+                return acc + Number(curr.paid_amount || curr.amount || 0);
               }
               return acc;
             }, 0) || Number(order?.partially_paid_amount || 0);
-            
-            // Jika metode pembayaran utama adalah wallet (dibayar penuh dengan wallet), maka potongannya adalah sebesar total pesanan
-            if (isFullWallet) {
-              partialAmount = totalOrder;
-            }
-            
+
+            if (isFullWallet) partialAmount = grandTotal;
             const isPartial = partialAmount > 0;
 
             return (
-              <>
+              <View className="w-full">
+                <View className="flex-row justify-between mb-2">
+                  <Text className="text-sm text-gray-500">Total Item</Text>
+                  <Text className="text-sm font-semibold text-gray-800">
+                    {toRupiah(orderDetails.length > 0 ? computedSubtotal : Number(order?.order_amount || 0) - Number(order?.delivery_charge || 0))}
+                  </Text>
+                </View>
+                <View className="flex-row justify-between mb-2">
+                  <Text className="text-sm text-gray-500">Ongkos Kirim</Text>
+                  <Text className="text-sm font-semibold text-gray-800">
+                    {toRupiah(deliveryCharge)}
+                  </Text>
+                </View>
+
                 {isPartial && (
                   <View className="flex-row justify-between mb-2">
                     <Text className="text-sm text-gray-500">Dipotong Wallet</Text>
@@ -272,12 +355,13 @@ export default function OrderDetailWidget() {
                 >
                   <Text className="text-sm font-black text-gray-900">{isPartial ? "Sisa Tagihan" : "Total Pembayaran"}</Text>
                   <Text className="text-base font-black text-green-700">
-                    {toRupiah(Math.max(0, totalOrder - partialAmount))}
+                    {toRupiah(Math.max(0, (orderDetails.length > 0 ? grandTotal : Number(order?.order_amount || 0)) - partialAmount))}
                   </Text>
                 </View>
-              </>
+              </View>
             );
           })()}
+
           <View className="flex-row justify-between mt-2">
             <Text className="text-xs text-gray-400">Metode Pembayaran</Text>
             <Text className="text-xs font-bold text-gray-700 uppercase">
@@ -326,19 +410,14 @@ export default function OrderDetailWidget() {
           />
         </View>
 
-        {/* WhatsApp CS Button */}
+        {/* Customer Service Screen Button */}
         <TouchableOpacity
           activeOpacity={0.85}
-          onPress={() => {
-            const msg = order?.id
-              ? `Halo, saya ingin bertanya tentang pesanan #${order.id}`
-              : `Halo, saya ingin bertanya tentang pesanan saya`;
-            Linking.openURL(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`);
-          }}
+          onPress={() => navigation.navigate("/cs")}
           className="bg-green-50 border border-green-200 rounded-2xl py-3.5 items-center flex-row justify-center mb-3"
         >
-          <FontAwesome5 name="whatsapp" size={16} color="#16a34a" />
-          <Text className="text-green-700 font-bold text-sm ml-2">Hubungi CS via WhatsApp</Text>
+          <FontAwesome5 name="headset" size={16} color="#16a34a" />
+          <Text className="text-green-700 font-bold text-sm ml-2">Hubungi CS Basegar</Text>
         </TouchableOpacity>
 
         {/* Back Button */}

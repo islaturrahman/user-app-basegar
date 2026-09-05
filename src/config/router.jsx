@@ -20,7 +20,9 @@ import Checkout from "../features/checkout/screen/Checkout";
 import OrdersView from "../features/orders/screen/OrdersView";
 import OrderDetailView from "../features/orders/screen/OrderDetailView";
 import OrderSuccessView from "../features/orders/screen/OrderSuccessView";
+import OrderChatView from "../features/orders/screen/OrderChatView";
 import ChatCsView from "../features/cs/screen/ChatCsView";
+import ChatListView from "../features/chat/screen/ChatListView";
 import StaticPage from "../features/user/screen/StaticPage";
 import VoucherView from "../features/voucher/screen/VoucherView";
 import RefundMethodView from "../features/user/screen/RefundMethodView";
@@ -120,7 +122,9 @@ export default function Router() {
         <>
           <Stack.Screen name="/account" component={Account} />
           <Stack.Screen name="/edit-profile" component={EditProfileView} />
+          <Stack.Screen name="/chat" component={ChatListView} />
           <Stack.Screen name="/cs" component={ChatCsView} />
+          <Stack.Screen name="/order-chat" component={OrderChatView} />
           <Stack.Screen name="/address" component={AddressView} />
           <Stack.Screen name="/address/pick" component={PickAddressView} />
           <Stack.Screen name="/address/add" component={AddAddressView} />

@@ -109,7 +109,21 @@ export default function ChatProvider({ children }) {
             try {
               const prevMessages = JSON.parse(lastMessagesJsonRef.current);
               
-              const isAdminMsg = (m) => m.is_reply == 1 || m.is_reply === true || (m.reply && String(m.reply).trim().length > 0);
+              const isAdminMsg = (m) => {
+                if (!m) return false;
+                const isRunner = 
+                  m.target === 'runner' || 
+                  m.target === 'deliveryman' || 
+                  m.chat_type === 'runner' || 
+                  m.chat_type === 'deliveryman' || 
+                  m.deliveryman_id != null || 
+                  m.sender_type === 'runner' || 
+                  m.sender_type === 'deliveryman' || 
+                  m.receiver_type === 'runner' || 
+                  m.receiver_type === 'deliveryman';
+                if (isRunner) return false;
+                return m.is_reply == 1 || m.is_reply === true || (m.reply && String(m.reply).trim().length > 0);
+              };
               const prevAdminCount = prevMessages.filter(isAdminMsg).length;
               const newAdminCount = messagesArray.filter(isAdminMsg).length;
               

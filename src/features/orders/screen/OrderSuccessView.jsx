@@ -5,13 +5,10 @@ import {
   TouchableOpacity,
   Animated,
   ScrollView,
-  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { FontAwesome5 } from "@expo/vector-icons";
-
-const WA_NUMBER = "6285298197900";
 
 const toRupiah = (v) => `Rp ${Number(v || 0).toLocaleString("id-ID")}`;
 
@@ -155,7 +152,7 @@ export default function OrderSuccessView() {
                   </View>
                 )}
                 {orderAmount && (
-                  <>
+                  <View className="w-full">
                     {isPartial && partialAmount > 0 && (
                       <View className="flex-row justify-between items-center py-2 border-b border-gray-50">
                         <Text className="text-xs text-gray-500">Dipotong Wallet</Text>
@@ -170,7 +167,7 @@ export default function OrderSuccessView() {
                         {toRupiah(isPartial && partialAmount > 0 ? remainingTagihan : orderAmount)}
                       </Text>
                     </View>
-                  </>
+                  </View>
                 )}
                 <View className="flex-row justify-between items-center py-2">
                   <Text className="text-xs text-gray-500">Status</Text>
@@ -199,20 +196,7 @@ export default function OrderSuccessView() {
               <Text className="text-white font-bold text-sm ml-2">Lihat Detail Pesanan</Text>
             </TouchableOpacity>
 
-            {/* WhatsApp Konfirmasi Pembayaran */}
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => {
-                const msg = orderId
-                  ? `Halo, saya ingin konfirmasi pesanan #${orderId} dengan ${isPartial ? "sisa tagihan" : "total"} ${toRupiah(isPartial ? remainingTagihan : orderAmount)}`
-                  : `Halo, saya ingin konfirmasi pesanan saya`;
-                Linking.openURL(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`);
-              }}
-              className="w-full bg-green-50 border border-green-200 py-3.5 rounded-2xl items-center flex-row justify-center"
-            >
-              <FontAwesome5 name="whatsapp" size={16} color="#16a34a" />
-              <Text className="text-green-700 font-bold text-sm ml-2">Konfirmasi via WhatsApp</Text>
-            </TouchableOpacity>
+
 
             <TouchableOpacity
               activeOpacity={0.85}

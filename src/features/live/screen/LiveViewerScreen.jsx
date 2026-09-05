@@ -81,7 +81,28 @@ function VideoPlayerMock({ session, sessionIdParam }) {
         const appId = "${agoraAppId}";
         const channel = "${agoraChannel}";
         const token = ${agoraToken ? `"${agoraToken}"` : "null"};
-        const uid = 99999;
+        const uid = Math.floor(Math.random() * 899999) + 100000;
+
+        const bindVideoToElement = (videoTrack) => {
+          try {
+            const videoEl = document.getElementById("agora-video-element");
+            const track = videoTrack._mediaStreamTrack || (videoTrack.getMediaStreamTrack && videoTrack.getMediaStreamTrack());
+            if (track && videoEl) {
+              videoEl.setAttribute('playsinline', 'true');
+              videoEl.setAttribute('webkit-playsinline', 'true');
+              videoEl.srcObject = new MediaStream([track]);
+              const p = videoEl.play();
+              if (p !== undefined) {
+                p.catch(e => {
+                  rnLog('[IOS AUTOPLAY RETRY] Retrying video play: ' + e.message);
+                  videoEl.play();
+                });
+              }
+            }
+          } catch(e) {
+            rnLog('[VIDEO BIND ERR] ' + e.message);
+          }
+        };
 
         async function initAgora() {
           try {
@@ -104,17 +125,7 @@ function VideoPlayerMock({ session, sessionIdParam }) {
                   user.videoTrack.play(playerContainer, { fit: "cover" });
                 } catch(e) {}
 
-                // Direct HTML5 MediaStreamTrack binding for Android WebView rendering
-                try {
-                  const videoEl = document.getElementById("agora-video-element");
-                  const track = user.videoTrack._mediaStreamTrack || (user.videoTrack.getMediaStreamTrack && user.videoTrack.getMediaStreamTrack());
-                  if (track && videoEl) {
-                    videoEl.srcObject = new MediaStream([track]);
-                    videoEl.play().catch(e => rnLog('[VIDEO PLAY ERR] ' + e.message));
-                  }
-                } catch(e) {
-                  rnLog('[VIDEO BIND ERR] ' + e.message);
-                }
+                bindVideoToElement(user.videoTrack);
 
                 rnLog('[AGORA RTC] Smooth Video playing!');
                 if (window.ReactNativeWebView) {
@@ -122,12 +133,31 @@ function VideoPlayerMock({ session, sessionIdParam }) {
                 }
               }
               if (mediaType === "audio") {
-                user.audioTrack.play();
+                rnLog('[AGORA RTC] Host published audio track! Playing remote audio...');
+                try {
+                  user.audioTrack.setVolume(100);
+                  user.audioTrack.play();
+                  rnLog('[AGORA RTC] 🔊 Audio playing loud and clear!');
+                } catch(e) {
+                  rnLog('[AGORA AUDIO ERR] ' + e.message);
+                }
               }
             });
 
+            const sendAudienceCount = () => {
+              const count = client.remoteUsers ? client.remoteUsers.length : 1;
+              rnLog('[AGORA USER VIEWERS COUNT] Active remote users in channel: ' + count);
+              if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'viewers_count', count: count }));
+              }
+            };
+
+            client.on("user-joined", sendAudienceCount);
+            client.on("user-left", sendAudienceCount);
+
             await client.join(appId, channel, token, uid);
             rnLog('[AGORA RTC] Joined channel successfully as Audience UID ' + uid + '!');
+            sendAudienceCount();
 
             // Subscribe to existing host tracks if host was already broadcasting
             if (client.remoteUsers && client.remoteUsers.length > 0) {
@@ -142,22 +172,20 @@ function VideoPlayerMock({ session, sessionIdParam }) {
                     remoteUser.videoTrack.play(playerContainer, { fit: "cover" });
                   } catch(e) {}
 
-                  try {
-                    const videoEl = document.getElementById("agora-video-element");
-                    const track = remoteUser.videoTrack._mediaStreamTrack || (remoteUser.videoTrack.getMediaStreamTrack && remoteUser.videoTrack.getMediaStreamTrack());
-                    if (track && videoEl) {
-                      videoEl.srcObject = new MediaStream([track]);
-                      videoEl.play().catch(e => rnLog('[VIDEO PLAY ERR] ' + e.message));
-                    }
-                  } catch(e) {}
+                  bindVideoToElement(remoteUser.videoTrack);
 
                   if (window.ReactNativeWebView) {
                     window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'agora_connected' }));
                   }
                 }
                 if (remoteUser.hasAudio) {
+                  rnLog('[AGORA RTC] Playing existing host audio track...');
                   await client.subscribe(remoteUser, "audio");
-                  remoteUser.audioTrack.play();
+                  try {
+                    remoteUser.audioTrack.setVolume(100);
+                    remoteUser.audioTrack.play();
+                    rnLog('[AGORA RTC] 🔊 Existing host audio playing!');
+                  } catch(e) {}
                 }
               }
             }
@@ -214,11 +242,13 @@ function VideoPlayerMock({ session, sessionIdParam }) {
     <View style={styles.videoBox}>
       <WebView
         originWhitelist={['*']}
-        source={{ html: agoraViewerHtml }}
+        source={{ html: agoraViewerHtml, baseUrl: 'https://app.agora.io' }}
         style={{ width: SCREEN_W, height: SCREEN_H, backgroundColor: '#000000' }}
         containerStyle={{ width: SCREEN_W, height: SCREEN_H, backgroundColor: '#000000' }}
         allowsInlineMediaPlayback={true}
         mediaPlaybackRequiresUserAction={false}
+        allowsProtectedMedia={true}
+        useWebKit={true}
         javaScriptEnabled={true}
         domStorageEnabled={true}
         mixedContentMode="always"
@@ -230,6 +260,10 @@ function VideoPlayerMock({ session, sessionIdParam }) {
             } else if (data.type === 'agora_connected') {
               console.log('[AGORA RTC] Connected! Hiding frame fallback.');
               setIsAgoraConnected(true);
+            } else if (data.type === 'viewers_count') {
+              if (data.count && session?.onViewerCountChange) {
+                session.onViewerCountChange(data.count);
+              }
             } else if (data.type === 'agora_error') {
               console.warn(`[AGORA FALLBACK] Error: ${data.error || 'Connection failed'}. Falling back to Live Stream player...`);
               setIsAgoraConnected(false);
@@ -321,8 +355,17 @@ export default function LiveViewerScreen() {
   const [chatExpanded, setChatExpanded] = useState(false);
   const [showRecipeBundle, setShowRecipeBundle] = useState(false);
   const [bundleAdded, setBundleAdded] = useState(false);
+  const [liveRealViewers, setLiveRealViewers] = useState(null);
 
   const session = sessions.find(s => String(s.id) === String(sessionId) || String(s.id).replace('server-', '') === String(sessionId).replace('server-', ''));
+
+  const activeSessionWithHandler = useMemo(() => {
+    if (!session) return null;
+    return {
+      ...session,
+      onViewerCountChange: (count) => setLiveRealViewers(count),
+    };
+  }, [session]);
 
   useEffect(() => {
     if (sessionId) joinSession(sessionId);
@@ -374,7 +417,7 @@ export default function LiveViewerScreen() {
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       {/* VIDEO PLAYER */}
-      <VideoPlayerMockMemo session={session} sessionIdParam={sessionId} />
+      <VideoPlayerMockMemo session={activeSessionWithHandler} sessionIdParam={sessionId} />
 
       {/* OVERLAY UI */}
       <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
@@ -393,7 +436,7 @@ export default function LiveViewerScreen() {
 
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <View style={styles.viewerBadge}>
-                <Text style={styles.viewerText}>👁 {viewerCount.toLocaleString('id-ID')}</Text>
+                <Text style={styles.viewerText}>👁 {(liveRealViewers || viewerCount || 1).toLocaleString('id-ID')}</Text>
               </View>
               <TouchableOpacity onPress={() => navigation.navigate('/cart')} style={styles.cartBtn}>
                 <ShoppingCart size={18} color="white" strokeWidth={2} />

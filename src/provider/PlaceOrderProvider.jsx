@@ -56,7 +56,15 @@ const OrderPlaceProvider = ({ children }) => {
   const validationLocalStorage = async () => {
     const cart = await AsyncStorage.getItem("cart");
     const addressStr = await AsyncStorage.getItem("selectAddress");
-    const dateslot = await AsyncStorage.getItem("dateslot");
+    let dateslot = await AsyncStorage.getItem("dateslot");
+    if (!dateslot) {
+      let defaultDate = new Date();
+      const year = defaultDate.getFullYear();
+      const month = String(defaultDate.getMonth() + 1).padStart(2, "0");
+      const day = String(defaultDate.getDate()).padStart(2, "0");
+      dateslot = `${year}-${month}-${day}`;
+      await AsyncStorage.setItem("dateslot", dateslot);
+    }
     const timeslot_id = await AsyncStorage.getItem("timeslotId");
     const order_amount = await AsyncStorage.getItem("order_amount");
     const distance = await AsyncStorage.getItem("distance");
@@ -115,6 +123,9 @@ const OrderPlaceProvider = ({ children }) => {
       gateway_amount = Math.max(0, gateway_amount - wallet_balance);
     }
 
+    const savedCouponCode = (await AsyncStorage.getItem("selected_coupon_code")) || "";
+    const savedCouponDiscount = parseFloat(await AsyncStorage.getItem("selected_coupon_discount")) || 0;
+
     const jsonBody = {
       order_amount: parseFloat(order_amount),
       payment_method: payment_method,
@@ -124,8 +135,8 @@ const OrderPlaceProvider = ({ children }) => {
       distance: distance,
       is_partial: is_partial === 1 ? "1" : "0",
       cart: cart.filter(item => item.is_selected !== false),
-      coupon_code: "",
-      coupon_discount_amount: 0,
+      coupon_code: savedCouponCode,
+      coupon_discount_amount: savedCouponDiscount,
       time_slot_id: timeslot_id,
       delivery_date: dateslot,
       order_note: order_note,
@@ -225,6 +236,7 @@ const OrderPlaceProvider = ({ children }) => {
     const keys = [
       "dateslot", "timeslotId", "order_amount", "distance",
       "payment_method", "dateslotId", "lastEndTimeFetchToday", "timeslot", "delivery_charge",
+      "selected_coupon_code", "selected_coupon_discount", "selected_coupon_title",
     ];
     await AsyncStorage.multiRemove(keys);
   };

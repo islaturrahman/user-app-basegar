@@ -1,29 +1,14 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, Platform, Keyboard, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, Keyboard } from 'react-native';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
-import { Home, LayoutGrid, Radio, FileText, User } from 'lucide-react-native';
+import { Home, LayoutGrid, MessageCircle, FileText, User } from 'lucide-react-native';
 import CartContext from '../context/CartContext';
+import ChatContext from '../context/ChatContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// Animated LIVE pulse dot for the Live tab
-function LiveTabDot() {
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  useEffect(() => {
-    Animated.loop(Animated.sequence([
-      Animated.timing(pulseAnim, { toValue: 1.7, duration: 700, useNativeDriver: true }),
-      Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
-    ])).start();
-  }, []);
-  return (
-    <View style={{ width: 8, height: 8, alignItems: 'center', justifyContent: 'center', position: 'absolute', top: 0, right: 0 }}>
-      <Animated.View style={{ position: 'absolute', width: 8, height: 8, borderRadius: 4, backgroundColor: '#fca5a5', opacity: 0.5, transform: [{ scale: pulseAnim }] }} />
-      <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#ef4444' }} />
-    </View>
-  );
-}
 
 export function BottomMenu() {
   const { cart } = useContext(CartContext) || { cart: [] };
+  const { globalUnreadCount } = useContext(ChatContext) || { globalUnreadCount: 0 };
   
   const navigation = useNavigation();
   const currentRouteName = useNavigationState(state => {
@@ -67,8 +52,8 @@ export function BottomMenu() {
     };
   }, []);
 
-  // Hide BottomMenu on specific routes (tambah /live/:id)
-  const hiddenRoutes = ['/cart', '/checkout', '/o/:id', '/p/:id', '/categories/:category_id', '/edit-profile', '/live/:id'];
+  // Hide BottomMenu on specific routes (tambah /live/:id, /cs, /order-chat)
+  const hiddenRoutes = ['/cart', '/checkout', '/o/:id', '/p/:id', '/categories/:category_id', '/edit-profile', '/live/:id', '/cs', '/order-chat'];
   if (
     currentRouteName &&
     (currentRouteName.startsWith('/address') || hiddenRoutes.includes(currentRouteName))
@@ -117,24 +102,27 @@ export function BottomMenu() {
         </Text>
       </TouchableOpacity>
 
-      {/* LIVE tab (ganti Chat CS) */}
+      {/* Chat */}
       <TouchableOpacity
-        onPress={() => navigation.navigate('/live')}
+        onPress={() => handleProtectedNavigation('/chat')}
         className="flex-1 items-center py-1 relative"
-        style={{ position: 'relative' }}
       >
         <View style={{ position: 'relative' }}>
-          <Radio 
+          <MessageCircle 
             size={22} 
-            color={isActive('/live') ? '#ef4444' : inactiveColor}
-            strokeWidth={isActive('/live') ? 2.5 : 2}
+            color={(isActive('/chat') || isActive('/cs') || isActive('/order-chat')) ? activeColor : inactiveColor}
+            strokeWidth={(isActive('/chat') || isActive('/cs') || isActive('/order-chat')) ? 2.5 : 2}
           />
-          {!isActive('/live') && <LiveTabDot />}
+          {globalUnreadCount > 0 && (
+            <View className="absolute -top-1 -right-1 bg-red-500 rounded-full w-4 h-4 items-center justify-center border border-white">
+              <Text className="text-white text-[9px] font-black">{globalUnreadCount}</Text>
+            </View>
+          )}
         </View>
         <Text 
-          className={`text-[10px] font-semibold mt-1 tracking-wide ${isActive('/live') ? 'text-red-500' : 'text-gray-500'}`}
+          className={`text-[10px] font-semibold mt-1 tracking-wide ${(isActive('/chat') || isActive('/cs') || isActive('/order-chat')) ? 'text-green-700' : 'text-gray-500'}`}
         >
-          Live 🔴
+          Chat
         </Text>
       </TouchableOpacity>
 

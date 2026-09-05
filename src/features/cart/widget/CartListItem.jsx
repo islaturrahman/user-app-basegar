@@ -158,13 +158,12 @@ const CartListItem = () => {
   const renderProductItem = (item, index, isCheckboxDisabled) => {
     const slots = item._parsedSlots;
     const isExpiredFresh = item._isExpiredFresh;
-    let dayLabel = (isGlobalExpired || (isExpiredFresh && slots.length > 0)) ? "Besok" : "Hari ini";
+    let dayLabel = (isGlobalExpired || (isExpiredFresh && slots.length > 0) || deliveryDate === "tomorrow") ? "Besok" : "Hari ini";
 
-    
     let displaySlot = null;
     if (slots.length > 0) {
         const sortedSlots = [...slots].sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""));
-        if (isExpiredFresh) {
+        if (isExpiredFresh || isGlobalExpired || deliveryDate === "tomorrow" || dayLabel === "Besok") {
             displaySlot = sortedSlots[0];
         } else {
             displaySlot = sortedSlots.find(slot => slot.end_time && slot.end_time >= currentTime) || sortedSlots[0];

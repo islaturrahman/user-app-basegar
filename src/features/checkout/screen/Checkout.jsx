@@ -8,6 +8,7 @@ import AppBar from "../../../components/AppBar";
 import { ConfigContext } from "../../../provider/ConfigProvider";
 import AddressCheckoutWidget from "../widget/AddressCheckoutWidget";
 import TimeSlotWidget from "../widget/TimeSlotWidget";
+import VoucherCheckoutWidget from "../widget/VoucherCheckoutWidget";
 import PaymentProvider from "../provider/PaymentProvider";
 import PaymentWidget from "../widget/PaymentWidget";
 import PlaceOrderWidget from "../widget/PlaceOrderWidget";
@@ -39,7 +40,7 @@ const Checkout = () => {
           <ScrollView
             className="flex-1"
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 160 }}
+            contentContainerStyle={{ paddingBottom: 240 }}
           >
             {/* Alamat Pengiriman Section */}
             <View className="px-4 mt-6 mb-2">
@@ -72,6 +73,9 @@ const Checkout = () => {
 
             {/* Delivery Time Slot Section */}
             <TimeSlotWidget />
+
+            {/* Voucher Section */}
+            <VoucherCheckoutWidget />
 
             {/* Payment Method Section */}
             <PaymentProvider>

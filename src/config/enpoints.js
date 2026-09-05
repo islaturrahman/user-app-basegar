@@ -69,6 +69,10 @@ export const time_slot = "/api/v1/timeSlot";
 export const get_admin_message = "/api/v1/customer/message/get-admin-message";
 export const send_admin_message = "/api/v1/customer/message/send-admin-message";
 
+// coupon
+export const coupon_list = "/api/v1/coupon/list";
+export const coupon_apply = "/api/v1/coupon/apply";
+
 //image
 export const path_product_img = `${base_url}/storage/product`;
 export const path_delivery_man_img = `${base_url}/storage/delivery-man`;

@@ -194,7 +194,7 @@ const PaymentWidget = ({ config }) => {
   const remainingTagihan = isWalletSufficient ? 0 : total - walletBalance;
 
   return (
-    <View className="bg-white p-4 mt-2">
+    <View className="bg-white p-4 mt-2 mb-6">
       {showWalletToggle && (
         <View className="mb-4">
           <Text className="font-bold text-gray-800 mb-3 text-sm">Gunakan Saldo Wallet</Text>

@@ -21,6 +21,7 @@ const PlaceOrderWidget = () => {
   const [orderAmount, setOrderAmount] = useState(0);
   const [useWallet, setUseWallet] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
+  const [couponDiscount, setCouponDiscount] = useState(0);
 
   const totalItemPrice = getTotalPrice ? getTotalPrice() : 0;
   const freeDeliveryThreshold = config?.free_delivery_over_amount || 0;
@@ -47,10 +48,11 @@ const PlaceOrderWidget = () => {
   }
 
   useEffect(() => {
-    const total = totalItemPrice + finalDeliveryCharge;
+    const baseTotal = totalItemPrice + finalDeliveryCharge;
+    const total = Math.max(0, baseTotal - couponDiscount);
     setOrderAmount(total);
     AsyncStorage.setItem("order_amount", String(total)).catch((e) => console.log(e));
-  }, [cart, finalDeliveryCharge, totalItemPrice]);
+  }, [cart, finalDeliveryCharge, totalItemPrice, couponDiscount]);
 
   useEffect(() => {
     const listener = DeviceEventEmitter.addListener('walletToggled', (data) => {
@@ -58,18 +60,30 @@ const PlaceOrderWidget = () => {
       setWalletBalance(data.balance);
     });
 
+    const voucherListener = DeviceEventEmitter.addListener('voucherChanged', (data) => {
+      setCouponDiscount(parseFloat(data?.discount) || 0);
+    });
+
     // Cek inisial statenya
     const checkInitialState = async () => {
       const isPartial = await AsyncStorage.getItem("is_partial");
       const savedUser = await AsyncStorage.getItem("user");
+      const savedCouponDiscount = await AsyncStorage.getItem("selected_coupon_discount");
+
       setUseWallet(isPartial === "1");
       if (savedUser) {
         setWalletBalance(parseFloat(JSON.parse(savedUser).wallet_balance) || 0);
       }
+      if (savedCouponDiscount) {
+        setCouponDiscount(parseFloat(savedCouponDiscount) || 0);
+      }
     };
     checkInitialState();
 
-    return () => listener.remove();
+    return () => {
+      listener.remove();
+      voucherListener.remove();
+    };
   }, []);
 
   // Show validation error from provider as Alert
@@ -91,6 +105,11 @@ const PlaceOrderWidget = () => {
       style={{ paddingBottom: Platform.OS === 'android' ? 40 : 12 }}
     >
       <View className="flex-row justify-between mb-1.5 items-center">
+        <Text className="text-xs text-gray-500 font-medium">Total Item</Text>
+        <Text className="text-xs font-bold text-gray-800">{toRupiah(totalItemPrice)}</Text>
+      </View>
+
+      <View className="flex-row justify-between mb-1.5 items-center">
         <Text className="text-xs text-gray-500 font-medium">Ongkos Kirim</Text>
         {isEligibleForFreeDelivery ? (
           finalDeliveryCharge === 0 ? (
@@ -109,6 +128,15 @@ const PlaceOrderWidget = () => {
           <Text className="text-xs font-bold text-gray-800">{toRupiah(deliverCharge)}</Text>
         )}
       </View>
+
+      {couponDiscount > 0 && (
+        <View className="flex-row justify-between mb-1.5 items-center">
+          <Text className="text-xs text-gray-500 font-medium">Diskon Voucher</Text>
+          <Text className="text-xs font-bold text-green-600">
+            -{toRupiah(couponDiscount)}
+          </Text>
+        </View>
+      )}
 
       {useWallet && walletBalance > 0 && (
         <View className="flex-row justify-between mb-1.5 items-center">
@@ -137,10 +165,10 @@ const PlaceOrderWidget = () => {
         {loading ? (
            <Text className="text-white font-bold text-sm">Memproses...</Text>
         ) : (
-          <>
+          <View className="flex-row items-center justify-center">
             <FontAwesome5 name="shopping-bag" size={14} color="#fff" />
             <Text className="text-white font-bold text-sm ml-2">Buat Pesanan</Text>
-          </>
+          </View>
         )}
       </TouchableOpacity>
     </View>

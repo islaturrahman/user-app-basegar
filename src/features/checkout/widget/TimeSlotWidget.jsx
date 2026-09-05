@@ -10,6 +10,7 @@ const TimeSlotWidget = () => {
     dateslot,
     getTimeSlotByIndex,
     selectedTimeSlot,
+    selecteDateSlot,
     clearTimeSlotId,
   } = useContext(TimeSlotContext);
   
@@ -25,6 +26,7 @@ const TimeSlotWidget = () => {
     const fetchTimeSlotByDeliveryDate = async () => {
       // Tunggu sampai dateslot di-load oleh provider
       const targetDateIndex = deliveryDate || "today";
+      if (selecteDateSlot) await selecteDateSlot(targetDateIndex);
       
       if (dateslot && dateslot.length > 0) {
         // Jangan fetch ulang jika kombinasi dateslot (sudah diload) dan deliveryDate belum berubah

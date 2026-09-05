@@ -168,7 +168,7 @@ const ProductWidget = ({ products, type = "grid" }) => {
         let displaySlot = null;
         if (slots.length > 0) {
             const sortedSlots = [...slots].sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""));
-            if (isSlotExpired) {
+            if (isSlotExpired || isGlobalExpired) {
                 displaySlot = sortedSlots[0];
             } else {
                 displaySlot = sortedSlots.find(slot => slot.end_time && slot.end_time >= currentTime) || sortedSlots[0];

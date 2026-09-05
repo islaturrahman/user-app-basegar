@@ -78,7 +78,7 @@ const ProductCard = ({
     const currentTime = `${currentHours}:${currentMinutes}:00`;
 
     const sortedSlots = [...timeSlots].sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""));
-    if (allSlotsExpired) {
+    if (allSlotsExpired || isGlobalExpired) {
         displaySlot = sortedSlots[0];
     } else {
         displaySlot = sortedSlots.find(slot => slot.end_time && slot.end_time >= currentTime) || sortedSlots[0];

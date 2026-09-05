@@ -9,11 +9,12 @@ import {
   KeyboardAvoidingView, 
   Platform,
   ActivityIndicator,
-  Keyboard
+  Keyboard,
+  Linking
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
 
 import { post } from "../../../data/api";
 import { send_admin_message, base_url } from "../../../config/enpoints";
@@ -39,6 +40,7 @@ export default function ChatCsView() {
 
   const [inputMessage, setInputMessage] = useState("");
   const [productEmbed, setProductEmbed] = useState(route.params?.productEmbed || "");
+  const [orderEmbed, setOrderEmbed] = useState(route.params?.orderEmbed || "");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   
@@ -46,6 +48,22 @@ export default function ChatCsView() {
   const flatListRef = useRef(null);
 
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+
+  const persistentOrderIdRef = useRef(route.params?.orderId || null);
+
+  useEffect(() => {
+    if (route.params?.orderEmbed) {
+      setOrderEmbed(route.params.orderEmbed);
+      const matchedId = route.params.orderEmbed.match(/id=(.*?)\|/)?.[1];
+      if (matchedId) persistentOrderIdRef.current = matchedId;
+    } else if (route.params?.orderId) {
+      setOrderEmbed(`[ORDER:id=${route.params.orderId}|status=Dikonfirmasi|amount=0]`);
+      persistentOrderIdRef.current = route.params.orderId;
+    }
+    if (route.params?.productEmbed) {
+      setProductEmbed(route.params.productEmbed);
+    }
+  }, [route.params?.orderEmbed, route.params?.orderId, route.params?.productEmbed]);
 
   useEffect(() => {
     const showSub = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => {
@@ -88,16 +106,21 @@ export default function ChatCsView() {
   };
 
   const handleSend = async () => {
-    if (!inputMessage.trim() && !productEmbed) return;
+    if (!inputMessage.trim() && !productEmbed && !orderEmbed) return;
     if (sending) return;
 
     let textToSend = inputMessage.trim();
-    if (productEmbed) {
+    if (orderEmbed) {
+      textToSend = textToSend ? `${orderEmbed}\n${textToSend}` : orderEmbed;
+    } else if (productEmbed) {
       textToSend = textToSend ? `${productEmbed}\n${textToSend}` : productEmbed;
     }
     
+    const sendingOrderId = persistentOrderIdRef.current || route.params?.orderId || (orderEmbed ? (orderEmbed.match(/\|id=(.*?)\|/)?.[1] || orderEmbed.match(/id=(.*?)\|/)?.[1]) : null);
+
     setInputMessage("");
     setProductEmbed("");
+    setOrderEmbed("");
     setSending(true);
 
     const tempMsg = {
@@ -105,6 +128,8 @@ export default function ChatCsView() {
       message: textToSend,
       reply: null,
       is_reply: false,
+      target: 'cs',
+      chat_type: 'cs',
       created_at: new Date().toISOString()
     };
     
@@ -121,7 +146,10 @@ export default function ChatCsView() {
     try {
       await post(send_admin_message, {
         message: textToSend,
-        user_id: userId
+        user_id: userId,
+        target: 'cs',
+        chat_type: 'cs',
+        ...(sendingOrderId ? { order_id: sendingOrderId } : {})
       });
       await fetchMessages(false);
     } catch (err) {
@@ -132,6 +160,53 @@ export default function ChatCsView() {
   };
 
   const renderMessageContent = (content, isAdmin = false) => {
+    if (typeof content === "string" && content.includes("[ORDER:")) {
+      try {
+        const o_id = content.match(/id=(.*?)\|/)?.[1] || "";
+        const o_status = decodeURIComponent(content.match(/status=(.*?)\|/)?.[1] || "Pesanan");
+        const o_amount = parseFloat(content.match(/amount=(.*?)\]/)?.[1] || "0");
+        const cleanMsg = content.replace(/\[ORDER:.*?\]/g, '').trim();
+
+        if (o_id) {
+          return (
+            <View className="flex-col">
+              <View className="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 w-[230px] shadow-sm mb-1">
+                <View className="flex-row items-center justify-between mb-1">
+                  <Text className="text-[9px] font-bold text-emerald-800 uppercase">
+                    Tanya Pesanan #{o_id} 📦
+                  </Text>
+                  <View className="bg-emerald-200/60 px-1.5 py-0.5 rounded">
+                    <Text className="text-[9px] font-bold text-emerald-900">{o_status}</Text>
+                  </View>
+                </View>
+                {o_amount > 0 ? (
+                  <Text className="text-xs font-bold text-gray-800">
+                    Total Order: {toRupiah(o_amount)}
+                  </Text>
+                ) : null}
+
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('/o/:id', { id: o_id })}
+                  className="bg-green-700 rounded-lg py-1.5 mt-2 flex-row items-center justify-center shadow-sm"
+                  activeOpacity={0.8}
+                >
+                  <Text className="text-white text-[10px] font-bold mr-1">Lihat Detail Order</Text>
+                  <Ionicons name="chevron-forward" size={12} color="white" />
+                </TouchableOpacity>
+              </View>
+              {cleanMsg ? (
+                <Text className={`text-xs mt-1 ${isAdmin ? "text-gray-800" : "text-white"}`}>
+                  {cleanMsg}
+                </Text>
+              ) : null}
+            </View>
+          );
+        }
+      } catch (e) {
+        console.error("Error parsing order embed:", e);
+      }
+    }
+
     if (typeof content === "string" && content.includes("[PRODUCT:")) {
       try {
         const matches = content.match(/\[PRODUCT:id=(.*?)\|name=(.*?)\|price=(.*?)\|image=(.*?)\|stock=(.*?)\]/);
@@ -237,7 +312,12 @@ export default function ChatCsView() {
                 isAdmin ? "text-gray-400" : "text-green-200"
               }`}
             >
-              {timeStr} {isAdmin && "• CS Basegar"}
+              {timeStr} {isAdmin && (orderEmbed || route.params?.orderId ? "• Runner & CS Basegar" : "• CS Basegar")}
+            </Text>
+
+            {/* Debug Text Kecil Target */}
+            <Text className={`text-[8px] font-mono mt-0.5 text-right ${isAdmin ? "text-gray-400/80" : "text-green-200/80"}`}>
+              [DEBUG] target:{String(item.target ?? 'null')} | chat_type:{String(item.chat_type ?? 'null')} | order:{String(item.order_id ?? '-')}
             </Text>
           </View>
         </View>
@@ -258,6 +338,26 @@ export default function ChatCsView() {
     }
   };
 
+  const activeOrderId = route.params?.orderId || (orderEmbed ? (orderEmbed.match(/\|id=(.*?)\|/)?.[1] || orderEmbed.match(/id=(.*?)\|/)?.[1]) : null);
+  const isOrderChat = Boolean(activeOrderId || orderEmbed);
+
+  const csFilteredMessages = messages.filter(m => {
+    if (!m) return false;
+    const isRunner = 
+      m.target === 'runner' || 
+      m.target === 'deliveryman' || 
+      m.chat_type === 'runner' || 
+      m.chat_type === 'deliveryman' || 
+      m.deliveryman_id != null || 
+      m.sender_type === 'runner' || 
+      m.sender_type === 'deliveryman' || 
+      m.receiver_type === 'runner' || 
+      m.receiver_type === 'deliveryman' ||
+      m.order_id != null;
+    if (isRunner) return false;
+    return m.target === 'cs' || m.target === 'admin' || m.chat_type === 'cs' || m.chat_type === 'admin';
+  });
+
   return (
     <SafeAreaView className="flex-1 bg-[#f7f9fa]">
       <KeyboardAvoidingView
@@ -267,22 +367,36 @@ export default function ChatCsView() {
       >
         
         {/* Header */}
-        <View className={`bg-white border-b border-gray-100 px-4 py-3 flex-row items-center z-10 shadow-sm ${Platform.OS === 'android' ? 'mt-8' : ''}`}
-    
-        >
-          <View className="flex-row items-center">
+        <View className={`bg-white border-b border-gray-100 px-4 py-3 flex-row items-center justify-between z-10 shadow-sm ${Platform.OS === 'android' ? 'mt-8' : ''}`}>
+          <View className="flex-row items-center flex-1">
+            <TouchableOpacity 
+              onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('/')}
+              className="mr-2.5 w-8 h-8 rounded-full items-center justify-center bg-gray-100"
+            >
+              <Ionicons name="chevron-back" size={20} color="#374151" />
+            </TouchableOpacity>
+
             <View className="relative">
               <View className="w-10 h-10 rounded-full bg-green-600 items-center justify-center shadow-sm">
                 <Ionicons name="headset" size={20} color="white" />
               </View>
               <View className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
             </View>
-            <View className="ml-3">
-              <Text className="text-sm font-bold text-gray-800">Customer Service {userId ? `(#${userId})` : '(No ID)'}</Text>
+
+            <View className="ml-3 flex-1">
+              <Text className="text-sm font-bold text-gray-900" numberOfLines={1}>
+                Customer Service Basegar {userId ? `(#${userId})` : ''}
+              </Text>
               <View className="flex-row items-center mt-0.5">
                 <View className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1" />
-                <Text className="text-[10px] text-emerald-600 font-medium">Online • Siap Membantu</Text>
+                <Text className="text-[10px] text-emerald-600 font-bold">
+                  Online • Siap Membantu 24/7 🎧
+                </Text>
               </View>
+              {/* Debug Header Info */}
+              <Text className="text-[8px] text-gray-500 font-mono mt-0.5" numberOfLines={1}>
+                🔍 Debug Targets: [{Array.from(new Set(messages.map(m => String(m.target ?? 'null')))).join(', ')}] | Total Msg: {messages.length} (CS: {csFilteredMessages.length})
+              </Text>
             </View>
           </View>
         </View>
@@ -293,7 +407,7 @@ export default function ChatCsView() {
             <View className="flex-1 justify-center items-center">
               <ActivityIndicator size="large" color="#15803d" />
             </View>
-          ) : messages.length === 0 ? (
+          ) : csFilteredMessages.length === 0 ? (
             <View className="flex-1 items-center justify-center px-8">
               <View className="w-16 h-16 rounded-full bg-green-50 items-center justify-center mb-3">
                 <Ionicons name="chatbubbles" size={30} color="#15803d" />
@@ -309,9 +423,9 @@ export default function ChatCsView() {
               ) : null}
             </View>
           ) : (
-              <FlatList
+            <FlatList
               ref={flatListRef}
-              data={[...messages].reverse()}
+              data={[...csFilteredMessages].reverse()}
               inverted={true}
               keyExtractor={(item, index) => (item.id || index).toString()}
               renderItem={renderItem}
@@ -342,7 +456,21 @@ export default function ChatCsView() {
           className={`bg-white border-t border-gray-100 p-3 ${isKeyboardVisible ? 'pb-3' : 'pb-[33px]'}`}
           style={Platform.OS === 'web' ? { paddingBottom: 80 } : {}}
         >
-          {productEmbed ? (
+          {orderEmbed ? (
+            <View className="mb-2 bg-emerald-50 border border-emerald-200 p-2.5 rounded-lg flex-row justify-between items-center shadow-sm">
+              <View className="flex-1 mr-2">
+                <Text className="text-[10px] font-bold text-emerald-900">
+                  Tanya tentang Pesanan #{orderEmbed.match(/\|id=(.*?)\|/)?.[1] || orderEmbed.match(/id=(.*?)\|/)?.[1] || "Pesanan"} 📦
+                </Text>
+                <Text className="text-[9.5px] text-emerald-700 mt-0.5" numberOfLines={1}>
+                  Status: {decodeURIComponent(orderEmbed.match(/\|status=(.*?)\|/)?.[1] || "Dikonfirmasi")}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setOrderEmbed("")} className="p-1 bg-emerald-100 rounded-full">
+                <Ionicons name="close" size={14} color="#065f46" />
+              </TouchableOpacity>
+            </View>
+          ) : productEmbed ? (
             <View className="mb-2 bg-emerald-50 border border-emerald-100 p-2 rounded-lg flex-row justify-between items-center">
               <Text className="text-[10px] text-emerald-800 flex-1" numberOfLines={1}>
                 Tanya produk: <Text className="font-bold">{decodeURIComponent(productEmbed.match(/\|name=(.*?)\|/)?.[1] || "Produk")}</Text>
@@ -357,7 +485,7 @@ export default function ChatCsView() {
             <TextInput
               value={inputMessage}
               onChangeText={setInputMessage}
-              placeholder="Tulis pesan untuk CS..."
+              placeholder="Tulis pesan untuk CS / Runner..."
               placeholderTextColor="#9ca3af"
               className="flex-1 bg-gray-100 text-gray-800 rounded-full px-4 py-2.5 text-xs mr-2"
               multiline={false}
@@ -365,9 +493,9 @@ export default function ChatCsView() {
             />
             <TouchableOpacity 
               onPress={handleSend}
-              disabled={(!inputMessage.trim() && !productEmbed) || sending}
+              disabled={(!inputMessage.trim() && !productEmbed && !orderEmbed) || sending}
               className={`w-10 h-10 rounded-full items-center justify-center shadow-sm ${
-                (inputMessage.trim() || productEmbed) && !sending
+                (inputMessage.trim() || productEmbed || orderEmbed) && !sending
                   ? "bg-green-700"
                   : "bg-gray-300"
               }`}

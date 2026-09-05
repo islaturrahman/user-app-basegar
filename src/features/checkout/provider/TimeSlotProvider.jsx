@@ -57,22 +57,22 @@ const TimeSlotProvider = ({ children }) => {
   const selecteDateSlot = async (dateslotIndex) => {
     try {
       await AsyncStorage.setItem("dateslotId", String(dateslotIndex));
+      await AsyncStorage.setItem("dateslotIndex", String(dateslotIndex));
 
-      if (dateslotIndex === "today") {
-        let today = new Date().toISOString().split("T")[0];
-        await AsyncStorage.setItem("dateslot", today);
-      } else if (dateslotIndex === "tomorrow") {
-        let tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        await AsyncStorage.setItem("dateslot", tomorrow.toISOString().split("T")[0]);
-      } else {
-        let afterTomorrow = new Date();
-        afterTomorrow.setDate(afterTomorrow.getDate() + 2);
-        await AsyncStorage.setItem(
-          "dateslot",
-          afterTomorrow.toISOString().split("T")[0]
-        );
+      let targetDate = new Date();
+      if (dateslotIndex === "tomorrow") {
+        targetDate.setDate(targetDate.getDate() + 1);
+      } else if (dateslotIndex !== "today") {
+        targetDate.setDate(targetDate.getDate() + 2);
       }
+
+      const year = targetDate.getFullYear();
+      const month = String(targetDate.getMonth() + 1).padStart(2, "0");
+      const day = String(targetDate.getDate()).padStart(2, "0");
+      let dateStr = `${year}-${month}-${day}`;
+
+      await AsyncStorage.setItem("dateslot", dateStr);
+      return dateStr;
     } catch (e) {
       console.error("Error saving dateslot", e);
     }
@@ -328,7 +328,7 @@ const TimeSlotProvider = ({ children }) => {
   };
 
   const selectedDateSlot = async (dateslotIndex) => {
-    await AsyncStorage.setItem("dateslotIndex", String(dateslotIndex));
+    await selecteDateSlot(dateslotIndex);
   };
 
   useEffect(() => {
@@ -343,6 +343,8 @@ const TimeSlotProvider = ({ children }) => {
     getTimeSlot,
     getTimeSlotByIndex,
     selectedTimeSlot,
+    selecteDateSlot,
+    selectedDateSlot,
     clearTimeSlotId,
   };
 

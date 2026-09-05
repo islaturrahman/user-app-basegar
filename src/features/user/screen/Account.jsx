@@ -144,10 +144,10 @@ export default function Account() {
     },
     {
       title: "Voucher Aktif",
-      subtitle: "Segera Hadir",
+      subtitle: "Lihat promo & diskon menarik",
       icon: Ticket,
-      iconColor: "#4b5563",
-      onPress: handleComingSoon
+      iconColor: "#16a34a",
+      onPress: () => navigation.navigate("/voucher")
     }
   ];
 
